@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전체 공구 데이터 통합 관리 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;900&display=swap');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; }
+        .active-view-btn { background-color: #2563eb !important; color: white !important; }
+        .card-animate { animation: fadeInUp 0.3s ease-out forwards; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <header class="bg-white border-b shadow-sm z-30 px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-6">
+            <h1 class="text-xl font-black text-slate-900 tracking-tighter italic">DATA <span class="text-blue-600">FULL-SET</span></h1>
+            <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button id="viewSellerBtn" onclick="switchView('seller')" class="px-4 py-2 text-xs font-bold rounded-lg active-view-btn transition-all">셀러 기준</button>
+                <button id="viewProductBtn" onclick="switchView('product')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 transition-all">상품 기준</button>
+            </div>
+        </div>
+        <div class="relative w-full md:w-80">
+            <input type="text" id="globalSearch" oninput="render()" placeholder="셀러 또는 상품명 검색..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <div class="max-w-[1500px] mx-auto">
+            <div id="mainGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"></div>
+        </div>
+    </main>
+
+    <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="p-6 border-b flex justify-between items-center bg-slate-50">
+                <div>
+                    <p id="modalSubtitle" class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Editing Mode</p>
+                    <h2 id="modalTitle" class="text-xl font-black text-slate-800 tracking-tight">항목 관리</h2>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 font-bold text-2xl transition-colors">×</button>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <div class="space-y-2">
+                    <label id="inputLabel" class="text-xs font-bold text-slate-500">항목 추가</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="modalInput" class="flex-1 px-4 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                        <button id="addBtn" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-700 transition-all">추가</button>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label id="listLabel" class="text-xs font-bold text-slate-500">현재 연결 리스트</label>
+                    <div id="modalItemList" class="flex flex-wrap gap-2 max-h-52 overflow-y-auto custom-scrollbar p-1"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 이미지의 모든 데이터 전수 입력
+        let rawData = [
+            { name: "깔랑", products: ["오큐라", "브리타", "베거스 주스", "올리즈", "세턴버드", "바스틀리", "실크온"] },
+            { name: "1401홈", products: ["알레피아", "젠제네틱스", "홀리주얼", "아쉬아간다", "글로썸", "삼원"] },
+            { name: "한스", products: [] },
+            { name: "윤블링", products: ["에이치클리어", "젠제네틱스", "마그네슘", "아쉬아간다"] },
+            { name: "핑크파르페", products: ["NMN"] },
+            { name: "쑨언니", products: ["삼원", "그린레시핏", "NMN"] },
+            { name: "뽀큐트", products: ["NMN", "바스틀리 휴지", "바스틀리 세제", "풀리오"] },
+            { name: "밥프로", products: ["오메가3", "아쉬아간다", "마그네슘", "브리타"] },
+            { name: "채널주인부재중", products: ["브리타"] },
+            { name: "윤지어트", products: [] },
+            { name: "닥터리본", products: [] },
+            { name: "제이마르다", products: [] },
+            { name: "위드마이엘", products: [] },
+            { name: "사니엘블랑", products: [] },
+            { name: "임세영", products: [] },
+            { name: "르꼬르망", products: [] },
+            { name: "유부림", products: [] },
+            { name: "땡스킴", products: ["글로썸"] },
+            { name: "드엘리사", products: [] },
+            { name: "AWW", products: ["바스틀리 세제", "브리타", "nmn", "삼원"] },
+            { name: "강희재", products: ["오큐라"] },
+            { name: "옥주부", products: ["한우", "삼원"] },
+            { name: "허앤쉬", products: ["지노프리", "로버즈베리에"] },
+            { name: "김승상", products: [] },
+            { name: "까사림", products: ["nmn", "바스틀리 휴지", "젠제네틱스"] },
+            { name: "두동맘", products: [] },
+            { name: "태이맘", products: [] },
+            { name: "시우맘", products: [] },
+            { name: "다미댁", products: [] },
+            { name: "제이더플로어", products: ["그린레시핏", "큐라"] },
+            { name: "쏠사", products: ["알레피아"] },
+            { name: "데이나", products: ["알레피아", "바스틀리 휴지", "바스틀리 세제"] },
+            { name: "바이씨니", products: ["샤크 청소기"] },
+            { name: "플로우윤", products: ["알레피아"] },
+            { name: "코크", products: ["알레피아", "실크온"] },
+            { name: "리앨리", products: ["알레피아", "실크온"] },
+            { name: "영팀장", products: ["실크온"] },
+            { name: "러브지나", products: ["오큐라"] },
+            { name: "새댁오인스", products: ["에어히터"] },
+            { name: "모여벨라", products: ["실크온"] }
+        ];
+
+        let currentView = 'seller'; 
+        let currentTarget = '';
+
+        function switchView(view) {
+            currentView = view;
+            document.getElementById('viewSellerBtn').classList.toggle('active-view-btn', view === 'seller');
+            document.getElementById('viewProductBtn').classList.toggle('active-view-btn', view === 'product');
+            render();
+        }
+
+        function render() {
+            const grid = document.getElementById('mainGrid');
+            const search = document.getElementById('globalSearch').value.toLowerCase();
+            grid.innerHTML = "";
+
+            if (currentView === 'seller') {
+                rawData.filter(s => s.name.includes(search) || s.products.some(p => p.includes(search))).forEach(s => {
+                    const card = createCard(s.name, s.products, 'SELLER');
+                    card.onclick = () => openModal(s.name, 'seller');
+                    grid.appendChild(card);
+                });
+            } else {
+                const productMap = {};
+                rawData.forEach(s => s.products.forEach(p => {
+                    if (!productMap[p]) productMap[p] = [];
+                    productMap[p].push(s.name);
+                }));
+                Object.keys(productMap).filter(p => p.includes(search)).sort().forEach(p => {
+                    const card = createCard(p, productMap[p], 'PRODUCT');
+                    card.onclick = () => openModal(p, 'product');
+                    grid.appendChild(card);
+                });
+            }
+        }
+
+        function createCard(title, items, type) {
+            const div = document.createElement('div');
+            const color = type === 'SELLER' ? 'blue' : 'emerald';
+            div.className = "card-animate bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl transition-all cursor-pointer group";
+            div.innerHTML = `
+                <div class="mb-3 flex justify-between items-center">
+                    <span class="text-[9px] font-black text-${color}-500 tracking-widest">${type}</span>
+                    <span class="text-[10px] font-bold text-slate-300 group-hover:text-blue-500">Edit</span>
+                </div>
+                <h3 class="text-lg font-black text-slate-800 mb-4">${title}</h3>
+                <div class="flex flex-wrap gap-1.5">
+                    ${items.length > 0 ? items.map(i => `<span class="bg-slate-50 text-slate-500 px-2 py-1 rounded-lg text-[10px] font-bold border border-slate-100">${i}</span>`).join('') : '<span class="text-slate-300 text-[10px] italic">데이터 없음</span>'}
+                </div>
+            `;
+            return div;
+        }
+
+        function openModal(name, type) {
+            currentTarget = name;
+            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('modalTitle').innerText = name;
+            document.getElementById('modalSubtitle').innerText = type === 'seller' ? "Seller Management" : "Product Management";
+            document.getElementById('inputLabel').innerText = type === 'seller' ? "상품 추가하기" : "판매 셀러 추가하기";
+            document.getElementById('listLabel').innerText = type === 'seller' ? "등록된 상품" : "등록된 셀러";
+            
+            renderModalItems(type);
+            document.getElementById('addBtn').onclick = () => handleAdd(type);
+        }
+
+        function renderModalItems(type) {
+            const listEl = document.getElementById('modalItemList');
+            listEl.innerHTML = "";
+            let items = [];
+
+            if (type === 'seller') {
+                const seller = rawData.find(s => s.name === currentTarget);
+                items = seller ? seller.products : [];
+            } else {
+                items = rawData.filter(s => s.products.includes(currentTarget)).map(s => s.name);
+            }
+
+            items.forEach(item => {
+                const chip = document.createElement('div');
+                chip.className = "bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-2";
+                chip.innerHTML = `${item} <button onclick="handleDelete('${item}', '${type}')" class="text-slate-400 hover:text-red-500 font-black">×</button>`;
+                listEl.appendChild(chip);
+            });
+        }
+
+        function handleAdd(type) {
+            const input = document.getElementById('modalInput');
+            const val = input.value.trim();
+            if (!val) return;
+
+            if (type === 'seller') {
+                const seller = rawData.find(s => s.name === currentTarget);
+                if (seller && !seller.products.includes(val)) seller.products.push(val);
+            } else {
+                let seller = rawData.find(s => s.name === val);
+                if (!seller) {
+                    rawData.push({ name: val, products: [currentTarget] });
+                } else if (!seller.products.includes(currentTarget)) {
+                    seller.products.push(currentTarget);
+                }
+            }
+            input.value = "";
+            renderModalItems(type);
+        }
+
+        function handleDelete(itemName, type) {
+            if (type === 'seller') {
+                const seller = rawData.find(s => s.name === currentTarget);
+                seller.products = seller.products.filter(p => p !== itemName);
+            } else {
+                const seller = rawData.find(s => s.name === itemName);
+                if (seller) seller.products = seller.products.filter(p => p !== currentTarget);
+            }
+            renderModalItems(type);
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            render();
+        }
+
+        switchView('seller');
+		// 모달 바깥 영역 클릭 시 닫기 기능
+		window.addEventListener('click', (event) => {
+			const modal = document.getElementById('modal');
+			// 클릭된 대상(event.target)이 모달 배경 자체일 경우에만 닫기
+			if (event.target === modal) {
+				closeModal();
+			}
+		});
+    </script>
+</body>
+</html>
