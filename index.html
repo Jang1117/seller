@@ -9,6 +9,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;900&display=swap');
         body { font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; }
         .active-view-btn { background-color: #2563eb !important; color: white !important; }
+        .active-filter-btn { background-color: #64748b !important; color: white !important; }
         .card-animate { animation: fadeInUp 0.3s ease-out forwards; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
@@ -18,11 +19,18 @@
 <body class="h-screen flex flex-col overflow-hidden">
 
     <header class="bg-white border-b shadow-sm z-30 px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-6">
-            <h1 class="text-xl font-black text-slate-900 tracking-tighter italic">SORTED <span class="text-blue-600">DASHBOARD</span></h1>
+        <div class="flex items-center gap-4 flex-wrap">
+            <h1 class="text-xl font-black text-slate-900 tracking-tighter italic mr-2">Seller <span class="text-blue-600">DASHBOARD</span></h1>
+            
             <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
                 <button id="viewSellerBtn" onclick="switchView('seller')" class="px-4 py-2 text-xs font-bold rounded-lg active-view-btn transition-all">셀러 기준</button>
                 <button id="viewProductBtn" onclick="switchView('product')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 transition-all">상품 기준</button>
+            </div>
+
+            <div id="sellerFilterGroup" class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button onclick="setSellerFilter('all')" id="filterAll" class="px-3 py-2 text-[11px] font-bold rounded-lg active-filter-btn transition-all">전체</button>
+                <button onclick="setSellerFilter('hasProduct')" id="filterHas" class="px-3 py-2 text-[11px] font-bold rounded-lg text-slate-500 transition-all">상품 있음</button>
+                <button onclick="setSellerFilter('noProduct')" id="filterNone" class="px-3 py-2 text-[11px] font-bold rounded-lg text-slate-500 transition-all">상품 없음</button>
             </div>
         </div>
         <div class="relative w-full md:w-80">
@@ -46,16 +54,15 @@
                 </div>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 font-bold text-2xl">×</button>
             </div>
-            
             <div class="p-6 space-y-6">
                 <div class="space-y-2">
                     <label id="inputLabel" class="text-xs font-bold text-slate-500">항목 추가</label>
                     <div class="flex gap-2">
-                        <input type="text" id="modalInput" class="flex-1 px-4 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="이름 입력 후 엔터">
+                        <input type="text" id="modalInput" list="suggestionList" class="flex-1 px-4 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="선택하거나 직접 입력">
+                        <datalist id="suggestionList"></datalist>
                         <button id="addBtn" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-700 transition-all">추가</button>
                     </div>
                 </div>
-
                 <div class="space-y-2">
                     <label id="listLabel" class="text-xs font-bold text-slate-500">현재 연결 리스트 (가나다순)</label>
                     <div id="modalItemList" class="flex flex-wrap gap-2 max-h-52 overflow-y-auto custom-scrollbar p-1"></div>
@@ -65,7 +72,6 @@
     </div>
 
     <script>
-        // 초기 데이터 로드 및 셀러명 가나다순 정렬
         let rawData = [
             { name: "깔랑", products: ["오큐라", "브리타", "베거스 주스", "올리즈", "세턴버드", "바스틀리", "실크온"] },
             { name: "1401홈", products: ["알레피아", "젠제네틱스", "홀리주얼", "아쉬아간다", "글로썸", "삼원"] },
@@ -86,12 +92,12 @@
             { name: "유부림", products: [] },
             { name: "땡스킴", products: ["글로썸"] },
             { name: "드엘리사", products: [] },
-            { name: "AWW", products: ["바스틀리 세제", "브리타", "nmn", "삼원"] },
+            { name: "AWW", products: ["바스틀리 세제", "브리타", "NMN", "삼원"] },
             { name: "강희재", products: ["오큐라"] },
             { name: "옥주부", products: ["한우", "삼원"] },
             { name: "허앤쉬", products: ["지노프리", "로버즈베리에"] },
             { name: "김승상", products: [] },
-            { name: "까사림", products: ["nmn", "바스틀리 휴지", "젠제네틱스"] },
+            { name: "까사림", products: ["NMN", "바스틀리 휴지", "젠제네틱스"] },
             { name: "두동맘", products: [] },
             { name: "태이맘", products: [] },
             { name: "시우맘", products: [] },
@@ -110,15 +116,33 @@
         ];
 
         let currentView = 'seller'; 
+        let sellerFilter = 'all'; // 'all', 'hasProduct', 'noProduct'
         let currentTarget = '';
 
-        // 문자열 정렬 함수 (가나다/ABC)
         const koreanSort = (a, b) => a.localeCompare(b, 'ko');
 
         function switchView(view) {
             currentView = view;
             document.getElementById('viewSellerBtn').classList.toggle('active-view-btn', view === 'seller');
             document.getElementById('viewProductBtn').classList.toggle('active-view-btn', view === 'product');
+            
+            // 필터 그룹 표시 여부 제어
+            const filterGroup = document.getElementById('sellerFilterGroup');
+            filterGroup.style.display = (view === 'seller') ? 'flex' : 'none';
+            
+            render();
+        }
+
+        function setSellerFilter(filter) {
+            sellerFilter = filter;
+            // 버튼 스타일 업데이트
+            document.getElementById('filterAll').classList.toggle('active-filter-btn', filter === 'all');
+            document.getElementById('filterAll').classList.toggle('text-slate-500', filter !== 'all');
+            document.getElementById('filterHas').classList.toggle('active-filter-btn', filter === 'hasProduct');
+            document.getElementById('filterHas').classList.toggle('text-slate-500', filter !== 'hasProduct');
+            document.getElementById('filterNone').classList.toggle('active-filter-btn', filter === 'noProduct');
+            document.getElementById('filterNone').classList.toggle('text-slate-500', filter !== 'noProduct');
+            
             render();
         }
 
@@ -128,32 +152,36 @@
             grid.innerHTML = "";
 
             if (currentView === 'seller') {
-                // 셀러 가나다순 정렬 후 렌더링
                 rawData
                     .slice()
                     .sort((a, b) => koreanSort(a.name, b.name))
-                    .filter(s => s.name.includes(search) || s.products.some(p => p.includes(search)))
+                    .filter(s => {
+                        // 검색 필터
+                        const matchesSearch = s.name.includes(search) || s.products.some(p => p.includes(search));
+                        // 상품 유무 필터
+                        let matchesFilter = true;
+                        if (sellerFilter === 'hasProduct') matchesFilter = s.products.length > 0;
+                        if (sellerFilter === 'noProduct') matchesFilter = s.products.length === 0;
+                        
+                        return matchesSearch && matchesFilter;
+                    })
                     .forEach(s => {
-                        // 카드 내 상품 태그도 가나다순 정렬
                         const sortedProds = s.products.slice().sort(koreanSort);
                         const card = createCard(s.name, sortedProds, 'SELLER');
                         card.onclick = () => openModal(s.name, 'seller');
                         grid.appendChild(card);
                     });
             } else {
-                // 상품 기준 맵 생성
                 const productMap = {};
                 rawData.forEach(s => s.products.forEach(p => {
                     if (!productMap[p]) productMap[p] = [];
                     productMap[p].push(s.name);
                 }));
                 
-                // 상품 가나다순 정렬 후 렌더링
                 Object.keys(productMap)
                     .filter(p => p.includes(search))
                     .sort(koreanSort)
                     .forEach(p => {
-                        // 카드 내 셀러 태그도 가나다순 정렬
                         const sortedSellers = productMap[p].slice().sort(koreanSort);
                         const card = createCard(p, sortedSellers, 'PRODUCT');
                         card.onclick = () => openModal(p, 'product');
@@ -162,6 +190,8 @@
             }
         }
 
+        // --- 이하 나머지 함수들(createCard, openModal 등)은 기존과 동일 ---
+        
         function createCard(title, items, type) {
             const div = document.createElement('div');
             const color = type === 'SELLER' ? 'blue' : 'emerald';
@@ -186,6 +216,21 @@
             document.getElementById('modalSubtitle').innerText = type === 'seller' ? "Seller Management" : "Product Management";
             document.getElementById('inputLabel').innerText = type === 'seller' ? "상품 추가하기" : "판매 셀러 추가하기";
             
+            const datalist = document.getElementById('suggestionList');
+            datalist.innerHTML = "";
+            let suggestions = [];
+            if (type === 'seller') {
+                const allProducts = new Set();
+                rawData.forEach(s => s.products.forEach(p => allProducts.add(p)));
+                suggestions = Array.from(allProducts);
+            } else {
+                suggestions = rawData.map(s => s.name);
+            }
+            suggestions.sort(koreanSort).forEach(item => {
+                const option = document.createElement('option');
+                option.value = item;
+                datalist.appendChild(option);
+            });
             renderModalItems(type);
             document.getElementById('addBtn').onclick = () => handleAdd(type);
         }
@@ -194,15 +239,12 @@
             const listEl = document.getElementById('modalItemList');
             listEl.innerHTML = "";
             let items = [];
-
             if (type === 'seller') {
                 const seller = rawData.find(s => s.name === currentTarget);
                 items = seller ? seller.products : [];
             } else {
                 items = rawData.filter(s => s.products.includes(currentTarget)).map(s => s.name);
             }
-
-            // 모달 내부 아이템도 가나다순 정렬
             items.slice().sort(koreanSort).forEach(item => {
                 const chip = document.createElement('div');
                 chip.className = "bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-2";
@@ -215,7 +257,6 @@
             const input = document.getElementById('modalInput');
             const val = input.value.trim();
             if (!val) return;
-
             if (type === 'seller') {
                 const seller = rawData.find(s => s.name === currentTarget);
                 if (seller && !seller.products.includes(val)) seller.products.push(val);
@@ -247,13 +288,11 @@
             render();
         }
 
-        // 배경 클릭 시 닫기
         window.onclick = function(event) {
             const modal = document.getElementById('modal');
             if (event.target == modal) closeModal();
         }
 
-        // 엔터키 추가
         document.getElementById('modalInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 const type = document.getElementById('modalSubtitle').innerText.includes('Seller') ? 'seller' : 'product';
