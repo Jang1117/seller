@@ -3,304 +3,992 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>셀러 및 상품 통합 관리 시스템</title>
+    <title>Seller Dashboard Pro</title>
+
+    <!-- SheetJS 및 Tailwind CSS -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;900&display=swap');
-        body { font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; }
+        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; }
+
+        /* 활성화 버튼 스타일 */
         .active-view-btn { background-color: #2563eb !important; color: white !important; }
-        .active-filter-btn { background-color: #64748b !important; color: white !important; }
+        .active-filter-btn { background-color: #2563eb !important; color: white !important; }
+        .active-tab { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 900; }
+
+        /* 애니메이션 */
         .card-animate { animation: fadeInUp 0.3s ease-out forwards; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 스크롤바 커스텀 */
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+
+        /* 로그 선택 강조(토글) */
+        .selected-log-item {
+            border: 2px solid #2563eb !important;
+            background-color: #eff6ff !important;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
     </style>
 </head>
+
 <body class="h-screen flex flex-col overflow-hidden">
 
-    <header class="bg-white border-b shadow-sm z-30 px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-4 flex-wrap">
-            <h1 class="text-xl font-black text-slate-900 tracking-tighter italic mr-2">Seller <span class="text-blue-600">DASHBOARD</span></h1>
-            
-            <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-                <button id="viewSellerBtn" onclick="switchView('seller')" class="px-4 py-2 text-xs font-bold rounded-lg active-view-btn transition-all">셀러 기준</button>
-                <button id="viewProductBtn" onclick="switchView('product')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 transition-all">상품 기준</button>
+    <!-- 헤더 영역 -->
+    <header class="bg-white border-b shadow-sm z-30 px-8 py-4 flex flex-col lg:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3 flex-wrap">
+            <div class="flex items-center mr-2">
+                <img src="data:image/jpeg;base64,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" alt="Linkers" class="h-7 md:h-8 w-auto" />
             </div>
 
-            <div id="sellerFilterGroup" class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-                <button onclick="setSellerFilter('all')" id="filterAll" class="px-3 py-2 text-[11px] font-bold rounded-lg active-filter-btn transition-all">전체</button>
-                <button onclick="setSellerFilter('hasProduct')" id="filterHas" class="px-3 py-2 text-[11px] font-bold rounded-lg text-slate-500 transition-all">상품 있음</button>
-                <button onclick="setSellerFilter('noProduct')" id="filterNone" class="px-3 py-2 text-[11px] font-bold rounded-lg text-slate-500 transition-all">상품 없음</button>
+            <!-- 기간 필터 -->
+            <div class="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm items-center gap-1">
+                <button id="viewAllBtn" onclick="resetGlobalFilter()" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">전체 기간</button>
+                <div class="w-px h-4 bg-slate-200 mx-1"></div>
+                <select id="filterYear" class="px-3 py-2 text-xs font-bold rounded-lg text-slate-500 bg-slate-50 border border-slate-200 outline-none">
+                    <option value="">연도</option>
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <option value="2026" selected>2026</option>
+                </select>
+                <select id="filterMonth" class="px-3 py-2 text-xs font-bold rounded-lg text-slate-500 bg-slate-50 border border-slate-200 outline-none">
+                    <option value="">월</option>
+                    <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option>
+                    <option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option>
+                    <option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                </select>
+            </div>
+
+            <!-- 뷰 전환 -->
+            <div class="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm items-center gap-1">
+                <button id="viewSellerBtn" onclick="switchView('seller')" class="px-4 py-2 text-xs font-bold rounded-lg active-view-btn">셀러</button>
+                <button id="viewProductBtn" onclick="switchView('product')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">상품</button>
+                <button id="viewStatsBtn" onclick="switchView('stats')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">요약</button>
+            </div>
+
+            <!-- 셀러 필터 (상품 있음/없음: 해당 기간 로그 기준) -->
+            <div id="sellerFilterGroup" class="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-sm">
+                <button onclick="setSellerFilter('all')" id="filterAll" class="px-3 py-2 text-[11px] font-bold rounded-lg active-filter-btn text-white">전체</button>
+                <button onclick="setSellerFilter('hasProduct')" id="filterHas" class="px-3 py-2 text-[11px] font-bold rounded-lg text-slate-500">상품 있음</button>
+                <button onclick="setSellerFilter('noProduct')" id="filterNo" class="px-3 py-2 text-[11px] font-bold rounded-lg text-slate-500">상품 없음</button>
             </div>
         </div>
-        <div class="relative w-full md:w-80">
-            <input type="text" id="globalSearch" oninput="render()" placeholder="셀러 또는 상품명 검색..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
-            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+
+        <!-- 검색 및 데이터 관리 -->
+        <div class="flex items-center gap-2">
+            <div id="searchArea" class="relative w-40">
+                <input type="text" id="globalSearch" oninput="renderAll()" placeholder="검색."
+                       class="w-full pl-8 pr-4 py-2 bg-slate-50 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            <button onclick="exportToExcel()" class="bg-emerald-600 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-emerald-700 transition-all">저장</button>
+            <button onclick="triggerImport()" class="bg-slate-700 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-slate-800 transition-all">불러오기</button>
+            <button onclick="clearAllData()" class="bg-red-50 text-red-600 border border-red-100 px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-red-100">초기화</button>
+            <input type="file" id="importFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="importData(event)">
         </div>
     </header>
 
+    <!-- 메인 컨텐츠 -->
     <main class="flex-1 overflow-y-auto p-8 custom-scrollbar">
         <div class="max-w-[1500px] mx-auto">
+            <!-- 그리드 뷰 (셀러/상품) -->
             <div id="mainGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"></div>
+
+            <!-- 월별 요약 뷰 (통계) -->
+            <div id="statsView" class="hidden space-y-8 animate-in fade-in duration-500">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-800 tracking-tight">월별 매출 요약 리포트</h2>
+                        <p id="statsDisplayTitle" class="text-blue-600 font-bold uppercase text-sm mt-1"></p>
+                    </div>
+
+                    <!-- stats mode toggle -->
+                    <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-sm">
+                        <button id="statsModeSeller" onclick="setStatsMode('seller')" class="px-3 py-2 text-[11px] font-bold rounded-lg active-filter-btn text-white">셀러 기준</button>
+                        <button id="statsModeProduct" onclick="setStatsMode('product')" class="px-3 py-2 text-[11px] font-bold rounded-lg text-slate-500">상품 기준</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="md:col-span-1 bg-blue-600 p-8 rounded-[2.5rem] shadow-xl text-white flex flex-col justify-center">
+                        <p class="text-blue-100 text-xs font-black uppercase mb-2">Total Revenue</p>
+                        <h3 id="totalMonthRevenue" class="text-5xl font-black">0.00 <span class="text-xl font-bold">억원</span></h3>
+                    </div>
+                    <div class="md:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 pr-2">
+                        <div id="statsTableContainer" class="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
+    <!-- 푸터 -->
+    <footer class="bg-white border-t py-4 px-8 text-center md:flex md:justify-between items-center z-30">
+        <p class="text-slate-400 text-xs font-medium">© 2026 <span class="font-black text-slate-600 uppercase">System</span>. All rights reserved.</p>
+        <p class="text-slate-400 text-xs font-medium mt-1 md:mt-0">Seller Management System</p>
+    </footer>
+
+    <!-- 모달 팝업 (셀러) -->
     <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-150">
-            <div class="p-6 border-b flex justify-between items-center bg-slate-50">
-                <div>
-                    <p id="modalSubtitle" class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Editing Mode</p>
-                    <h2 id="modalTitle" class="text-xl font-black text-slate-800 tracking-tight">항목 관리</h2>
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in duration-150">
+            <div class="p-8 border-b bg-slate-50 relative">
+                <h2 id="modalTitle" class="text-2xl font-black text-slate-800 tracking-tight uppercase leading-none text-blue-600">관리</h2>
+                <button onclick="closeModal()" class="absolute top-8 right-8 text-slate-400 hover:text-slate-600 font-bold text-2xl">×</button>
+                <div class="flex gap-6 mt-6">
+                    <button id="tabRel" onclick="switchTab('rel')" class="pb-2 text-sm font-bold active-tab transition-all">행사 상품</button>
+                    <button id="tabLog" onclick="switchTab('log')" class="pb-2 text-sm font-bold text-slate-400 transition-all">일정/매출 기록</button>
                 </div>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 font-bold text-2xl">×</button>
             </div>
-            <div class="p-6 space-y-6">
-                <div class="space-y-2">
-                    <label id="inputLabel" class="text-xs font-bold text-slate-500">항목 추가</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="modalInput" list="suggestionList" class="flex-1 px-4 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="선택하거나 직접 입력">
-                        <datalist id="suggestionList"></datalist>
-                        <button id="addBtn" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-700 transition-all">추가</button>
-                    </div>
+            <div class="p-8">
+                <!-- 탭 1: 행사 상품 목록 (해당 기간 로그 기준) -->
+                <div id="tabContentRel" class="space-y-6">
+                    <div id="modalItemList" class="flex flex-wrap gap-2 max-h-56 overflow-y-auto custom-scrollbar pr-1"></div>
                 </div>
-                <div class="space-y-2">
-                    <label id="listLabel" class="text-xs font-bold text-slate-500">현재 연결 리스트 (가나다순)</label>
-                    <div id="modalItemList" class="flex flex-wrap gap-2 max-h-52 overflow-y-auto custom-scrollbar p-1"></div>
+
+                <!-- 탭 2: 일정/매출 기록 (신규 입력은 항상 마스터 상품 선택 가능) -->
+                <div id="tabContentLog" class="hidden space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">행사일</label>
+                            <input type="date" id="logDate" class="w-full px-3 py-2 border rounded-lg text-sm outline-none">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">상품명</label>
+                            <select id="logProduct" class="w-full px-3 py-2 border rounded-lg text-sm outline-none"></select>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">매출액(억원)</label>
+                            <input type="number" id="logRevenue" step="0.01" class="w-full px-3 py-2 border rounded-lg text-sm outline-none" placeholder="0.00">
+                        </div>
+                    </div>
+                    <button id="submitLogBtn" onclick="submitLog()" class="w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-sm">기록 추가/수정</button>
+                    <div id="logHistoryList" class="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1 pt-2"></div>
+                    <div class="text-[11px] text-slate-400 font-bold">
+                        * 기록 리스트 항목 클릭: 선택(파란 테두리) / 다시 클릭: 선택 해제 + 입력 초기화
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        let rawData = [
-            { name: "깔랑", products: ["오큐라", "브리타", "베거스 주스", "올리즈", "세턴버드", "바스틀리", "실크온"] },
-            { name: "1401홈", products: ["알레피아", "젠제네틱스", "홀리주얼", "아쉬아간다", "글로썸", "삼원"] },
-            { name: "한스", products: [] },
-            { name: "윤블링", products: ["에이치클리어", "젠제네틱스", "마그네슘", "아쉬아간다"] },
-            { name: "핑크파르페", products: ["NMN"] },
-            { name: "쑨언니", products: ["삼원", "그린레시핏", "NMN"] },
-            { name: "뽀큐트", products: ["NMN", "바스틀리 휴지", "바스틀리 세제", "풀리오"] },
-            { name: "밥프로", products: ["오메가3", "아쉬아간다", "마그네슘", "브리타"] },
-            { name: "채널주인부재중", products: ["브리타"] },
-            { name: "윤지어트", products: [] },
-            { name: "닥터리본", products: [] },
-            { name: "제이마르다", products: [] },
-            { name: "위드마이엘", products: [] },
-            { name: "사니엘블랑", products: [] },
-            { name: "임세영", products: [] },
-            { name: "르꼬르망", products: [] },
-            { name: "유부림", products: [] },
-            { name: "땡스킴", products: ["글로썸"] },
-            { name: "드엘리사", products: [] },
-            { name: "AWW", products: ["바스틀리 세제", "브리타", "NMN", "삼원"] },
-            { name: "강희재", products: ["오큐라"] },
-            { name: "옥주부", products: ["한우", "삼원"] },
-            { name: "허앤쉬", products: ["지노프리", "로버즈베리에"] },
-            { name: "김승상", products: [] },
-            { name: "까사림", products: ["NMN", "바스틀리 휴지", "젠제네틱스"] },
-            { name: "두동맘", products: [] },
-            { name: "태이맘", products: [] },
-            { name: "시우맘", products: [] },
-            { name: "다미댁", products: [] },
-            { name: "제이더플로어", products: ["그린레시핏", "큐라"] },
-            { name: "쏠사", products: ["알레피아"] },
-            { name: "데이나", products: ["알레피아", "바스틀리 휴지", "바스틀리 세제"] },
-            { name: "바이씨니", products: ["샤크 청소기"] },
-            { name: "플로우윤", products: ["알레피아"] },
-            { name: "코크", products: ["알레피아", "실크온"] },
-            { name: "리앨리", products: ["알레피아", "실크온"] },
-            { name: "영팀장", products: ["실크온"] },
-            { name: "러브지나", products: ["오큐라"] },
-            { name: "새댁오인스", products: ["에어히터"] },
-            { name: "모여벨라", products: ["실크온"] }
-        ];
-
-        let currentView = 'seller'; 
-        let sellerFilter = 'all'; // 'all', 'hasProduct', 'noProduct'
-        let currentTarget = '';
-
-        const koreanSort = (a, b) => a.localeCompare(b, 'ko');
-
-        function switchView(view) {
-            currentView = view;
-            document.getElementById('viewSellerBtn').classList.toggle('active-view-btn', view === 'seller');
-            document.getElementById('viewProductBtn').classList.toggle('active-view-btn', view === 'product');
-            
-            // 필터 그룹 표시 여부 제어
-            const filterGroup = document.getElementById('sellerFilterGroup');
-            filterGroup.style.display = (view === 'seller') ? 'flex' : 'none';
-            
-            render();
-        }
-
-        function setSellerFilter(filter) {
-            sellerFilter = filter;
-            // 버튼 스타일 업데이트
-            document.getElementById('filterAll').classList.toggle('active-filter-btn', filter === 'all');
-            document.getElementById('filterAll').classList.toggle('text-slate-500', filter !== 'all');
-            document.getElementById('filterHas').classList.toggle('active-filter-btn', filter === 'hasProduct');
-            document.getElementById('filterHas').classList.toggle('text-slate-500', filter !== 'hasProduct');
-            document.getElementById('filterNone').classList.toggle('active-filter-btn', filter === 'noProduct');
-            document.getElementById('filterNone').classList.toggle('text-slate-500', filter !== 'noProduct');
-            
-            render();
-        }
-
-        function render() {
-            const grid = document.getElementById('mainGrid');
-            const search = document.getElementById('globalSearch').value.toLowerCase();
-            grid.innerHTML = "";
-
-            if (currentView === 'seller') {
-                rawData
-                    .slice()
-                    .sort((a, b) => koreanSort(a.name, b.name))
-                    .filter(s => {
-                        // 검색 필터
-                        const matchesSearch = s.name.includes(search) || s.products.some(p => p.includes(search));
-                        // 상품 유무 필터
-                        let matchesFilter = true;
-                        if (sellerFilter === 'hasProduct') matchesFilter = s.products.length > 0;
-                        if (sellerFilter === 'noProduct') matchesFilter = s.products.length === 0;
-                        
-                        return matchesSearch && matchesFilter;
-                    })
-                    .forEach(s => {
-                        const sortedProds = s.products.slice().sort(koreanSort);
-                        const card = createCard(s.name, sortedProds, 'SELLER');
-                        card.onclick = () => openModal(s.name, 'seller');
-                        grid.appendChild(card);
-                    });
-            } else {
-                const productMap = {};
-                rawData.forEach(s => s.products.forEach(p => {
-                    if (!productMap[p]) productMap[p] = [];
-                    productMap[p].push(s.name);
-                }));
-                
-                Object.keys(productMap)
-                    .filter(p => p.includes(search))
-                    .sort(koreanSort)
-                    .forEach(p => {
-                        const sortedSellers = productMap[p].slice().sort(koreanSort);
-                        const card = createCard(p, sortedSellers, 'PRODUCT');
-                        card.onclick = () => openModal(p, 'product');
-                        grid.appendChild(card);
-                    });
-            }
-        }
-
-        // --- 이하 나머지 함수들(createCard, openModal 등)은 기존과 동일 ---
-        
-        function createCard(title, items, type) {
-            const div = document.createElement('div');
-            const color = type === 'SELLER' ? 'blue' : 'emerald';
-            div.className = "card-animate bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl transition-all cursor-pointer group";
-            div.innerHTML = `
-                <div class="mb-3 flex justify-between items-center">
-                    <span class="text-[9px] font-black text-${color}-500 tracking-widest">${type}</span>
-                    <span class="text-[10px] font-bold text-slate-300 group-hover:text-blue-500">Edit</span>
+    <!-- 상품 분석 모달 (상품 기준 팝업: 셀러별 매출만) -->
+    <div id="productModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in duration-150">
+            <div class="p-8 border-b bg-slate-50 relative">
+                <h2 id="productModalTitle" class="text-2xl font-black text-slate-800 tracking-tight uppercase leading-none text-emerald-600">상품 분석</h2>
+                <button onclick="closeProductModal()" class="absolute top-8 right-8 text-slate-400 hover:text-slate-600 font-bold text-2xl">×</button>
+                <p id="productModalSubtitle" class="mt-3 text-xs font-bold text-slate-400 uppercase tracking-wider"></p>
+            </div>
+            <div class="p-8 space-y-6">
+                <div class="bg-white p-6 rounded-[1.8rem] border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-black text-slate-800 uppercase tracking-tight">셀러별 매출</h3>
+                        <span id="productSellerTotal" class="text-xs font-black text-emerald-600"></span>
+                    </div>
+                    <div id="productSellerList" class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar pr-1"></div>
                 </div>
-                <h3 class="text-lg font-black text-slate-800 mb-4">${title}</h3>
-                <div class="flex flex-wrap gap-1.5">
-                    ${items.length > 0 ? items.map(i => `<span class="bg-slate-50 text-slate-500 px-2 py-1 rounded-lg text-[10px] font-bold border border-slate-100">${i}</span>`).join('') : '<span class="text-slate-300 text-[10px] italic">데이터 없음</span>'}
+                <div class="bg-slate-50 border border-slate-100 rounded-[1.8rem] p-5">
+                    <p class="text-[11px] font-bold text-slate-500 leading-relaxed">
+                        * 현재 상단 기간 필터(연/월)에 맞춰 집계됩니다. (월 선택 시: 해당 월 / 연도만 선택 시: 해당 연도 / 미선택: 전체)
+                    </p>
                 </div>
-            `;
-            return div;
-        }
+            </div>
+        </div>
+    </div>
 
-        function openModal(name, type) {
-            currentTarget = name;
-            document.getElementById('modal').classList.remove('hidden');
-            document.getElementById('modalTitle').innerText = name;
-            document.getElementById('modalSubtitle').innerText = type === 'seller' ? "Seller Management" : "Product Management";
-            document.getElementById('inputLabel').innerText = type === 'seller' ? "상품 추가하기" : "판매 셀러 추가하기";
-            
-            const datalist = document.getElementById('suggestionList');
-            datalist.innerHTML = "";
-            let suggestions = [];
-            if (type === 'seller') {
-                const allProducts = new Set();
-                rawData.forEach(s => s.products.forEach(p => allProducts.add(p)));
-                suggestions = Array.from(allProducts);
-            } else {
-                suggestions = rawData.map(s => s.name);
-            }
-            suggestions.sort(koreanSort).forEach(item => {
-                const option = document.createElement('option');
-                option.value = item;
-                datalist.appendChild(option);
+<script>
+    // -------------------------
+    // State
+    // -------------------------
+    let rawData = [];
+    let salesLogs = [];
+    let currentView = 'seller';
+    let sellerFilter = 'all';
+    let statsMode = 'seller';
+
+    let currentTarget = '';     // seller modal
+    let editingLogId = null;    // selected log id (toggle)
+
+    let currentProductTarget = ''; // product modal
+
+    const koreanSort = (a, b) => (a || '').localeCompare((b || ''), 'ko');
+
+    // -------------------------
+    // Storage
+    // -------------------------
+    function saveToLocal() {
+        localStorage.setItem('sorted_rawData', JSON.stringify(rawData));
+        localStorage.setItem('sorted_salesLogs', JSON.stringify(salesLogs));
+    }
+    function loadFromLocal() {
+        try {
+            rawData = JSON.parse(localStorage.getItem('sorted_rawData') || '[]') || [];
+            salesLogs = JSON.parse(localStorage.getItem('sorted_salesLogs') || '[]') || [];
+        } catch (e) {
+            rawData = [];
+            salesLogs = [];
+        }
+        rawData.forEach(s => { s.products = Array.isArray(s.products) ? s.products : []; });
+        salesLogs = Array.isArray(salesLogs) ? salesLogs : [];
+    }
+
+    // -------------------------
+    // Period filter helpers
+    // -------------------------
+    function getPeriod() {
+        const year = document.getElementById('filterYear').value || '';
+        const month = document.getElementById('filterMonth').value || '';
+        const filterKey = (year && month) ? `${year}-${month}` : (year ? year : '');
+        const label = (year && month) ? `${year}-${month}` : (year ? `${year}` : '전체');
+        return { year, month, filterKey, label };
+    }
+
+    function filterLogsByPeriod(logs) {
+        const { year, month } = getPeriod();
+        if (year && month) return logs.filter(l => (l.date || '').includes(`${year}-${month}`));
+        if (year) return logs.filter(l => (l.date || '').startsWith(year + '-'));
+        return logs.slice();
+    }
+
+    function uniqueSorted(arr) {
+        return Array.from(new Set(arr.filter(Boolean))).sort(koreanSort);
+    }
+
+    function resetGlobalFilter() {
+        document.getElementById('filterYear').value = "";
+        document.getElementById('filterMonth').value = "";
+        renderAll();
+    }
+
+    // -------------------------
+    // UI controls
+    // -------------------------
+    function setSellerFilter(f) {
+        sellerFilter = f;
+        const all = document.getElementById('filterAll');
+        const has = document.getElementById('filterHas');
+        const no = document.getElementById('filterNo');
+
+        all.className = `px-3 py-2 text-[11px] font-bold rounded-lg transition-all ${f==='all' ? 'active-filter-btn text-white' : 'text-slate-500 hover:bg-white'}`;
+        has.className = `px-3 py-2 text-[11px] font-bold rounded-lg transition-all ${f==='hasProduct' ? 'active-filter-btn text-white' : 'text-slate-500 hover:bg-white'}`;
+        no.className  = `px-3 py-2 text-[11px] font-bold rounded-lg transition-all ${f==='noProduct' ? 'active-filter-btn text-white' : 'text-slate-500 hover:bg-white'}`;
+        renderAll();
+    }
+
+    function setStatsMode(mode) {
+        statsMode = mode;
+        const sBtn = document.getElementById('statsModeSeller');
+        const pBtn = document.getElementById('statsModeProduct');
+        sBtn.className = `px-3 py-2 text-[11px] font-bold rounded-lg transition-all ${mode==='seller' ? 'active-filter-btn text-white' : 'text-slate-500 hover:bg-white'}`;
+        pBtn.className = `px-3 py-2 text-[11px] font-bold rounded-lg transition-all ${mode==='product' ? 'active-filter-btn text-white' : 'text-slate-500 hover:bg-white'}`;
+        renderAll();
+    }
+
+    function switchView(view) {
+        currentView = view;
+
+        document.getElementById('viewSellerBtn').classList.toggle('active-view-btn', view === 'seller');
+        document.getElementById('viewProductBtn').classList.toggle('active-view-btn', view === 'product');
+        document.getElementById('viewStatsBtn').classList.toggle('active-view-btn', view === 'stats');
+
+        document.getElementById('viewSellerBtn').classList.toggle('text-slate-500', view !== 'seller');
+        document.getElementById('viewProductBtn').classList.toggle('text-slate-500', view !== 'product');
+        document.getElementById('viewStatsBtn').classList.toggle('text-slate-500', view !== 'stats');
+
+        document.getElementById('mainGrid').classList.toggle('hidden', view === 'stats');
+        document.getElementById('statsView').classList.toggle('hidden', view !== 'stats');
+
+        document.getElementById('sellerFilterGroup').style.display = (view === 'seller') ? 'flex' : 'none';
+        document.getElementById('searchArea').style.display = (view === 'stats') ? 'none' : 'block';
+
+        renderAll();
+    }
+
+    function renderAll() {
+        renderMain();
+        renderStats();
+        // modal open => refresh its contents immediately on period change
+        if (!document.getElementById('modal').classList.contains('hidden')) {
+            refreshSellerModalOnPeriodChange();
+        }
+        if (!document.getElementById('productModal').classList.contains('hidden')) {
+            renderProductModal();
+        }
+    }
+
+    // -------------------------
+    // Main render
+    // -------------------------
+    function createCard(title, items, type, salesVal = 0, salesLabel = '실적') {
+        const div = document.createElement('div');
+        const color = type === 'SELLER' ? 'blue' : 'emerald';
+        div.className = "card-animate bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 hover:shadow-xl hover:border-blue-300 transition-all cursor-pointer group";
+
+        div.onclick = () => {
+            if (type === 'SELLER') openSellerModal(title);
+            else openProductModal(title);
+        };
+
+        const chips = items.length > 0
+            ? items.map(i => `<span class="bg-slate-50 text-slate-500 px-2 py-1 rounded-lg text-[9px] font-bold border border-slate-100">${escapeHtml(i)}</span>`).join('')
+            : `<span class="text-slate-300 text-[9px] italic font-medium">${type==='SELLER' ? '연결 상품 없음' : '연결 셀러 없음'}</span>`;
+
+        div.innerHTML = `
+            <div class="mb-3 flex justify-between items-center">
+                <span class="text-[9px] font-black text-${color}-500 tracking-widest uppercase">${type}</span>
+                <span class="text-[10px] font-bold text-slate-300 group-hover:text-blue-500 italic uppercase">Manage</span>
+            </div>
+            <h3 class="text-lg font-black text-slate-800 mb-1">${escapeHtml(title)}</h3>
+            <p class="text-xs font-black text-${color}-600 mb-3 bg-${color}-50 inline-block px-2 py-1 rounded-lg">
+                ${escapeHtml(salesLabel)}: ${Number(salesVal || 0).toFixed(2)}억
+            </p>
+            <div class="flex flex-wrap gap-1">${chips}</div>
+        `;
+        return div;
+    }
+
+    function renderMain() {
+        const grid = document.getElementById('mainGrid');
+        if (!grid) return;
+        grid.innerHTML = "";
+
+        if (currentView === 'stats') return;
+
+        const search = (document.getElementById('globalSearch').value || '').toLowerCase();
+        const { label } = getPeriod();
+        const salesLabel = (label === '전체') ? '누적 실적' : `${label} 실적`;
+
+        if (currentView === 'seller') {
+            const sellers = (rawData || []).slice().sort((a,b)=>koreanSort(a.name,b.name));
+
+            sellers.forEach(s => {
+                const sellerLogs = filterLogsByPeriod(salesLogs.filter(l => l.seller === s.name));
+                const productsInPeriod = uniqueSorted(sellerLogs.map(l => l.product));
+                const targetSales = sellerLogs.reduce((sum, l) => sum + Number(l.revenue || 0), 0);
+
+                const hasProductInPeriod = productsInPeriod.length > 0;
+
+                // search (seller name OR master products OR period products)
+                const masterProducts = uniqueSorted((s.products || []));
+                const matchesSearch =
+                    (s.name || '').toLowerCase().includes(search) ||
+                    masterProducts.some(p => (p || '').toLowerCase().includes(search)) ||
+                    productsInPeriod.some(p => (p || '').toLowerCase().includes(search));
+
+                let matchesFilter = true;
+                if (sellerFilter === 'hasProduct') matchesFilter = hasProductInPeriod;
+                if (sellerFilter === 'noProduct') matchesFilter = !hasProductInPeriod;
+
+                if (!matchesSearch || !matchesFilter) return;
+
+                grid.appendChild(createCard(s.name, productsInPeriod, 'SELLER', targetSales, salesLabel));
             });
-            renderModalItems(type);
-            document.getElementById('addBtn').onclick = () => handleAdd(type);
+
+            if (!grid.children.length) {
+                grid.innerHTML = "<div class='text-center py-12 text-slate-300 font-black uppercase col-span-full'>No Sellers</div>";
+            }
+            return;
         }
 
-        function renderModalItems(type) {
-            const listEl = document.getElementById('modalItemList');
-            listEl.innerHTML = "";
-            let items = [];
-            if (type === 'seller') {
-                const seller = rawData.find(s => s.name === currentTarget);
-                items = seller ? seller.products : [];
-            } else {
-                items = rawData.filter(s => s.products.includes(currentTarget)).map(s => s.name);
-            }
-            items.slice().sort(koreanSort).forEach(item => {
-                const chip = document.createElement('div');
-                chip.className = "bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-2";
-                chip.innerHTML = `${item} <button onclick="handleDelete('${item}', '${type}')" class="text-slate-400 hover:text-red-500 font-black">×</button>`;
-                listEl.appendChild(chip);
+        if (currentView === 'product') {
+            // master products set (so card exists even with 0 sales), but sellers list derived from period logs to prevent phantom chips
+            const master = new Set();
+            rawData.forEach(s => (s.products || []).forEach(p => master.add(p)));
+            salesLogs.forEach(l => { if (l.product) master.add(l.product); });
+
+            const products = Array.from(master).filter(Boolean).sort(koreanSort);
+
+            products.forEach(p => {
+                const logs = filterLogsByPeriod(salesLogs.filter(l => l.product === p));
+                const sales = logs.reduce((sum, l) => sum + Number(l.revenue || 0), 0);
+                const sellersInPeriod = uniqueSorted(logs.map(l => l.seller));
+
+                const matchesSearch =
+                    (p || '').toLowerCase().includes(search) ||
+                    sellersInPeriod.some(n => (n || '').toLowerCase().includes(search));
+
+                if (!matchesSearch) return;
+
+                grid.appendChild(createCard(p, sellersInPeriod, 'PRODUCT', sales, salesLabel));
             });
-        }
 
-        function handleAdd(type) {
-            const input = document.getElementById('modalInput');
-            const val = input.value.trim();
-            if (!val) return;
-            if (type === 'seller') {
-                const seller = rawData.find(s => s.name === currentTarget);
-                if (seller && !seller.products.includes(val)) seller.products.push(val);
-            } else {
-                let seller = rawData.find(s => s.name === val);
-                if (!seller) {
-                    rawData.push({ name: val, products: [currentTarget] });
-                } else if (!seller.products.includes(currentTarget)) {
-                    seller.products.push(currentTarget);
-                }
+            if (!grid.children.length) {
+                grid.innerHTML = "<div class='text-center py-12 text-slate-300 font-black uppercase col-span-full'>No Products</div>";
             }
-            input.value = "";
-            renderModalItems(type);
         }
+    }
 
-        function handleDelete(itemName, type) {
-            if (type === 'seller') {
-                const seller = rawData.find(s => s.name === currentTarget);
-                seller.products = seller.products.filter(p => p !== itemName);
-            } else {
-                const seller = rawData.find(s => s.name === itemName);
-                if (seller) seller.products = seller.products.filter(p => p !== currentTarget);
-            }
-            renderModalItems(type);
-        }
+    // -------------------------
+    // Stats render
+    // -------------------------
+    function renderStats() {
+        if (currentView !== 'stats') return;
 
-        function closeModal() {
-            document.getElementById('modal').classList.add('hidden');
-            render();
-        }
+        const { label } = getPeriod();
+        document.getElementById('statsDisplayTitle').innerText = (label === '전체') ? '전체 통합 분석' : `${label} 상세 분석`;
 
-        window.onclick = function(event) {
-            const modal = document.getElementById('modal');
-            if (event.target == modal) closeModal();
-        }
+        const filteredLogs = filterLogsByPeriod(salesLogs);
+        const totalRevenue = filteredLogs.reduce((sum, l) => sum + Number(l.revenue || 0), 0);
+        document.getElementById('totalMonthRevenue').innerHTML = `${totalRevenue.toFixed(2)} <span class="text-xl font-bold">억원</span>`;
 
-        document.getElementById('modalInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const type = document.getElementById('modalSubtitle').innerText.includes('Seller') ? 'seller' : 'product';
-                handleAdd(type);
-            }
+        const agg = {};
+        filteredLogs.forEach(l => {
+            const key = (statsMode === 'seller') ? l.seller : l.product;
+            if (!key) return;
+            agg[key] = (agg[key] || 0) + Number(l.revenue || 0);
         });
 
-        switchView('seller');
-    </script>
+        const sorted = Object.entries(agg).sort((a,b)=>b[1]-a[1]);
+        const container = document.getElementById('statsTableContainer');
+        container.innerHTML = "";
+
+        if (!sorted.length) {
+            container.innerHTML = "<div class='text-center py-12 text-slate-300 font-black uppercase'>No Data</div>";
+            return;
+        }
+
+        sorted.forEach(([name, rev], idx) => {
+            const percent = totalRevenue > 0 ? (rev / totalRevenue * 100).toFixed(1) : '0.0';
+            const row = document.createElement('div');
+            row.className = "flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:bg-white hover:shadow-md transition-all";
+            row.innerHTML = `
+                <div class="w-8 h-8 flex items-center justify-center bg-blue-600 rounded-full text-[10px] font-black text-white">${idx + 1}</div>
+                <div class="flex-1">
+                    <div class="flex justify-between items-center mb-1">
+                        <h5 class="text-sm font-black text-slate-800">${escapeHtml(name)}</h5>
+                        <span class="text-xs font-bold text-blue-600">${Number(rev||0).toFixed(2)}억</span>
+                    </div>
+                    <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                        <div class="bg-blue-500 h-full transition-all duration-700" style="width: ${percent}%;"></div>
+                    </div>
+                </div>
+                <div class="text-right w-12 text-[11px] font-black text-slate-400">${percent}%</div>
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    // -------------------------
+    // Seller modal + tabs
+    // -------------------------
+    function switchTab(t) {
+        const isRel = t === 'rel';
+        document.getElementById('tabRel').classList.toggle('active-tab', isRel);
+        document.getElementById('tabLog').classList.toggle('active-tab', !isRel);
+        document.getElementById('tabRel').classList.toggle('text-slate-400', !isRel);
+        document.getElementById('tabLog').classList.toggle('text-slate-400', isRel);
+        document.getElementById('tabContentRel').classList.toggle('hidden', !isRel);
+        document.getElementById('tabContentLog').classList.toggle('hidden', isRel);
+    }
+
+    function getCurrentSeller() {
+        return rawData.find(s => s.name === currentTarget) || null;
+    }
+
+    function openSellerModal(sellerName) {
+        currentTarget = sellerName;
+        editingLogId = null;
+
+        document.getElementById('modalTitle').innerText = sellerName;
+        document.getElementById('modal').classList.remove('hidden');
+
+        updateLogProductDropdownMaster(); // always master list
+        resetLogFields();                 // clear inputs
+        renderModalItemsPeriod();
+        renderLogHistoryPeriod();
+
+        switchTab('rel');
+    }
+
+    function closeModal() {
+        document.getElementById('modal').classList.add('hidden');
+        currentTarget = '';
+        editingLogId = null;
+        resetLogFields();
+    }
+
+    function refreshSellerModalOnPeriodChange() {
+        // If selected log is out of current period -> deselect and reset
+        if (editingLogId) {
+            const log = salesLogs.find(l => l.id === editingLogId);
+            const visibleIds = new Set(filterLogsByPeriod(salesLogs.filter(l => l.seller === currentTarget)).map(l => l.id));
+            if (!log || !visibleIds.has(editingLogId)) {
+                editingLogId = null;
+                resetLogFields();
+            }
+        }
+        updateLogProductDropdownMaster();
+        renderModalItemsPeriod();
+        renderLogHistoryPeriod();
+    }
+
+    // 행사상품 탭: 해당 기간 로그에 존재하는 상품만
+    function renderModalItemsPeriod() {
+        const listEl = document.getElementById('modalItemList');
+        listEl.innerHTML = "";
+        if (!currentTarget) return;
+
+        const sellerLogs = filterLogsByPeriod(salesLogs.filter(l => l.seller === currentTarget));
+        const products = uniqueSorted(sellerLogs.map(l => l.product));
+
+        if (!products.length) {
+            listEl.innerHTML = `
+                <div class="text-center py-10 text-slate-300 font-black uppercase w-full">
+                    연결 상품 없음
+                    <div class="mt-2 text-[11px] font-bold text-slate-400 normal-case">
+                        신규 입력은 <b>일정/매출 기록</b> 탭에서 전체 연결 상품을 선택해 추가하세요.
+                    </div>
+                </div>`;
+            return;
+        }
+
+        products.forEach(p => {
+            const pLogs = sellerLogs.filter(l => l.product === p);
+            const totalSales = pLogs.reduce((sum, l) => sum + Number(l.revenue || 0), 0);
+            const dates = uniqueSorted(pLogs.map(l => l.date)).slice(0, 3).join(', ');
+
+            const chip = document.createElement('div');
+            chip.className = "bg-white text-slate-700 px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 shadow-sm flex items-center gap-2 hover:bg-blue-50 transition-all cursor-pointer";
+
+            chip.innerHTML = `
+                <span>${escapeHtml(p)}</span>
+                ${dates ? `<span class="text-blue-500 font-black ml-1 text-[9px] bg-blue-50 px-1.5 py-0.5 rounded-lg border border-blue-100 shadow-sm">${escapeHtml(dates)}</span>` : ''}
+                <span class="text-slate-400 font-normal">(${totalSales.toFixed(2)}억)</span>
+            `;
+
+            chip.onclick = () => {
+                // 요구사항: 행사상품 클릭 -> 일정/매출 기록 탭 아래(로그 리스트)에서 해당 상품 항목 테두리 토글 ON
+                switchTab('log');
+
+                // dropdown은 항상 마스터지만, 편의를 위해 상품 선택은 해당 상품으로 맞춤
+                document.getElementById('logProduct').value = p;
+
+                // 가장 최근 로그(해당 기간) 선택 + 폼 채움 + 파란 테두리 ON
+                const latest = pLogs.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
+                if (latest) {
+                    selectLog(latest, { fromRelClick: true });
+                } else {
+                    // 혹시나 없는 경우: 신규 입력 준비
+                    editingLogId = null;
+                    resetLogFields({ keepProduct: true });
+                    renderLogHistoryPeriod();
+                }
+            };
+
+            listEl.appendChild(chip);
+        });
+    }
+
+
+    function getGlobalMasterProducts() {
+        const set = new Set();
+        (rawData || []).forEach(s => (s.products || []).forEach(p => { if (p) set.add(p); }));
+        (salesLogs || []).forEach(l => { if (l && l.product) set.add(l.product); });
+        return uniqueSorted(Array.from(set));
+    }
+
+    // 일정/매출 기록 탭: 상품 dropdown은 항상 마스터 목록
+    function updateLogProductDropdownMaster() {
+        const select = document.getElementById('logProduct');
+        if (!select) return;
+
+        const currentValue = select.value || "";
+        select.innerHTML = "<option value=''>상품 선택</option>";
+
+        // ✅ 요구사항: 신규 입력을 위해 항상 '전체 상품(마스터)'을 표시
+        // 마스터(전체 상품) = (모든 셀러의 연결 상품) ∪ (전체 로그에 등장한 상품)
+        const products = getGlobalMasterProducts();
+        products.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p;
+            opt.textContent = p;
+            select.appendChild(opt);
+        });
+
+        // 가능한 경우 기존 선택 유지
+        if (currentValue && products.includes(currentValue)) select.value = currentValue;
+    }
+
+
+    function renderLogHistoryPeriod() {
+        const container = document.getElementById('logHistoryList');
+        container.innerHTML = "";
+        if (!currentTarget) return;
+
+        const logs = filterLogsByPeriod(salesLogs.filter(l => l.seller === currentTarget))
+            .slice()
+            .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+        if (!logs.length) {
+            container.innerHTML = "<div class='text-center py-10 text-slate-300 font-black uppercase'>No History</div>";
+            return;
+        }
+
+        logs.forEach(l => {
+            const div = document.createElement('div');
+            const isSelected = (l.id === editingLogId);
+            div.className = `flex justify-between items-center p-3 bg-white rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-blue-400 transition-all group ${isSelected ? 'selected-log-item' : ''}`;
+
+            div.onclick = (e) => {
+                if (e.target.closest('button')) return;
+                if (editingLogId === l.id) {
+                    // toggle off
+                    editingLogId = null;
+                    resetLogFields(); // 완전 초기화
+                    renderLogHistoryPeriod();
+                } else {
+                    selectLog(l);
+                }
+            };
+
+            div.innerHTML = `
+                <div class="flex flex-col">
+                    <span class="text-[9px] font-black text-blue-500 uppercase">${escapeHtml(l.date || '날짜 미정')}</span>
+                    <span class="text-xs font-bold text-slate-700">
+                        ${escapeHtml(l.product || '')} - <span class="text-blue-700">${Number(l.revenue || 0).toFixed(2)}억</span>
+                    </span>
+                </div>
+                <button onclick="deleteLog(${l.id})" class="text-slate-300 hover:text-red-500 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function selectLog(log, opts = {}) {
+        // 선택 ON
+        editingLogId = log.id;
+
+        document.getElementById('logDate').value = log.date || "";
+        document.getElementById('logProduct').value = log.product || "";
+        document.getElementById('logRevenue').value = (log.revenue !== null && log.revenue !== undefined) ? Number(log.revenue).toFixed(2) : "";
+
+        const btn = document.getElementById('submitLogBtn');
+        btn.innerText = "기록 수정";
+        btn.className = "w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-md";
+
+        renderLogHistoryPeriod();
+    }
+
+    function resetLogFields(opts = {}) {
+        const keepProduct = !!opts.keepProduct;
+        const productVal = keepProduct ? (document.getElementById('logProduct').value || "") : "";
+
+        document.getElementById('logDate').value = "";
+        document.getElementById('logRevenue').value = "";
+        document.getElementById('logProduct').value = productVal;
+
+        const btn = document.getElementById('submitLogBtn');
+        btn.innerText = "기록 추가/수정";
+        btn.className = "w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-sm";
+    }
+
+    function submitLog() {
+        if (!currentTarget) return;
+
+        const date = document.getElementById('logDate').value || "";
+        const product = document.getElementById('logProduct').value || "";
+        const revenue = Number(document.getElementById('logRevenue').value || 0);
+
+        if (!product) return alert("상품 선택 필요");
+
+        // ✅ 신규 입력 시: 선택된 상품을 해당 셀러의 '연결 상품(마스터)'에 자동 반영
+        const sellerObj = getCurrentSeller();
+        if (sellerObj) {
+            sellerObj.products = Array.isArray(sellerObj.products) ? sellerObj.products : [];
+            if (product && !sellerObj.products.includes(product)) {
+                sellerObj.products.push(product);
+                sellerObj.products = uniqueSorted(sellerObj.products);
+            }
+        }
+
+
+        if (editingLogId) {
+            const idx = salesLogs.findIndex(l => l.id === editingLogId);
+            if (idx !== -1) {
+                salesLogs[idx] = { ...salesLogs[idx], date, product, revenue };
+            }
+            editingLogId = null;
+        } else {
+            salesLogs.push({ id: Date.now(), seller: currentTarget, product, date, revenue });
+        }
+
+        salesLogs.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+        saveToLocal();
+
+        // 신규 입력 준비: 날짜/매출만 비우고 상품 선택은 유지
+        resetLogFields({ keepProduct: true });
+
+        renderModalItemsPeriod();
+        renderLogHistoryPeriod();
+        renderMain(); // refresh cards
+        if (currentView === 'stats') renderStats();
+    }
+
+    function deleteLog(id) {
+        if (!confirm("기록을 삭제합니까?")) return;
+        salesLogs = salesLogs.filter(l => l.id !== id);
+        if (editingLogId === id) {
+            editingLogId = null;
+            resetLogFields();
+        }
+        saveToLocal();
+        renderModalItemsPeriod();
+        renderLogHistoryPeriod();
+        renderMain();
+        if (currentView === 'stats') renderStats();
+        if (!document.getElementById('productModal').classList.contains('hidden')) renderProductModal();
+    }
+
+    // -------------------------
+    // Product modal
+    // -------------------------
+    function openProductModal(productName) {
+        currentProductTarget = productName;
+        renderProductModal();
+        document.getElementById('productModal').classList.remove('hidden');
+    }
+    function closeProductModal() {
+        document.getElementById('productModal').classList.add('hidden');
+        currentProductTarget = '';
+    }
+
+    function renderProductModal() {
+        const productName = currentProductTarget;
+        if (!productName) return;
+
+        const { label } = getPeriod();
+        document.getElementById('productModalTitle').innerText = productName;
+        document.getElementById('productModalSubtitle').innerText = (label === '전체') ? '전체 기간 기준' : `${label} 기준`;
+
+        const logs = filterLogsByPeriod(salesLogs.filter(l => l.product === productName));
+
+        const agg = {};
+        logs.forEach(l => {
+            if (!l.seller) return;
+            agg[l.seller] = (agg[l.seller] || 0) + Number(l.revenue || 0);
+        });
+
+        const sorted = Object.entries(agg).sort((a,b)=>b[1]-a[1]);
+        const total = sorted.reduce((s, [,v]) => s + Number(v||0), 0);
+        document.getElementById('productSellerTotal').innerText = `합계 ${total.toFixed(2)}억`;
+
+        const list = document.getElementById('productSellerList');
+        list.innerHTML = "";
+
+        if (!sorted.length) {
+            list.innerHTML = "<div class='text-center py-10 text-slate-300 font-black uppercase'>No Data</div>";
+            return;
+        }
+
+        sorted.forEach(([seller, v]) => {
+            const row = document.createElement('div');
+            row.className = "flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-white shadow-sm";
+            row.innerHTML = `<span class="text-xs font-black text-slate-700">${escapeHtml(seller)}</span><span class="text-xs font-black text-emerald-600">${Number(v||0).toFixed(2)}억</span>`;
+            list.appendChild(row);
+        });
+    }
+
+    // -------------------------
+    // Excel import/export (rev5 compatible)
+    // -------------------------
+	function exportToExcel() {
+		// Export columns: 셀러명, 상품명, 행사일, 매출액(억원)
+		// Sorting priority:
+		//  1) 상품 유무(상품 없는 셀러는 맨 아래)
+		//  2) 셀러명(가나다순)
+		//  3) 행사일(오름차순)
+		//  (tie-breakers) 상품명(가나다순) -> 매출액(오름차순)
+
+		const header = ["셀러명", "상품명", "행사일", "매출액(억원)"];
+
+		// Seller -> has any product?
+		const sellerHasProduct = new Map();
+
+		// from rawData 연결상품
+		(rawData || []).forEach(s => {
+			const has = Array.isArray(s.products) && s.products.length > 0;
+			sellerHasProduct.set(s.name, has);
+		});
+
+		// from logs (연결상품 배열이 비어도 로그가 있으면 "상품 있음" 처리)
+		(salesLogs || []).forEach(l => {
+			if (!l || !l.seller) return;
+			const prev = sellerHasProduct.get(l.seller);
+			if (prev === undefined) sellerHasProduct.set(l.seller, !!l.product);
+			else if (!prev && l.product) sellerHasProduct.set(l.seller, true);
+		});
+
+		// Build export rows
+		const rows = [];
+
+		// 1) logs
+		(salesLogs || []).forEach(l => {
+			rows.push({
+				seller: l.seller || "",
+				product: l.product || "",
+				date: l.date || "",
+				revenue: (l.revenue === null || l.revenue === undefined) ? "" : l.revenue
+			});
+		});
+
+		// 2) connections w/o logs + sellers with no products
+		(rawData || []).forEach(s => {
+			const sellerName = s.name || "";
+			const products = Array.isArray(s.products) ? s.products : [];
+
+			if (!products.length) {
+				// seller row even without products
+				rows.push({ seller: sellerName, product: "", date: "", revenue: "" });
+				return;
+			}
+
+			products.forEach(p => {
+				const has = (salesLogs || []).some(l => l && l.seller === sellerName && l.product === p);
+				if (!has) rows.push({ seller: sellerName, product: p || "", date: "", revenue: "" });
+			});
+		});
+
+		// Sort rows with required priority
+		rows.sort((a, b) => {
+			const aHas = sellerHasProduct.get(a.seller) ? 1 : 0;
+			const bHas = sellerHasProduct.get(b.seller) ? 1 : 0;
+			if (aHas !== bHas) return bHas - aHas; // 상품 있음 먼저
+
+			const sCmp = (a.seller || "").localeCompare((b.seller || ""), "ko");
+			if (sCmp !== 0) return sCmp;
+
+			const aDate = (a.date || "").trim() ? a.date.trim().slice(0, 10) : "9999-12-31";
+			const bDate = (b.date || "").trim() ? b.date.trim().slice(0, 10) : "9999-12-31";
+			if (aDate !== bDate) return aDate.localeCompare(bDate);
+
+			const pCmp = (a.product || "").localeCompare((b.product || ""), "ko");
+			if (pCmp !== 0) return pCmp;
+
+			const ar = (a.revenue === "" ? Number.POSITIVE_INFINITY : Number(a.revenue));
+			const br = (b.revenue === "" ? Number.POSITIVE_INFINITY : Number(b.revenue));
+			return ar - br;
+		});
+
+		const excelData = [header, ...rows.map(r => [r.seller, r.product, r.date, r.revenue])];
+
+		const wb = XLSX.utils.book_new();
+		const ws = XLSX.utils.aoa_to_sheet(excelData);
+		XLSX.utils.book_append_sheet(wb, ws, "매출현황");
+		XLSX.writeFile(wb, `Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+	}
+
+
+    function triggerImport() { document.getElementById('importFile').click(); }
+
+    function importData(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+                const sellerMap = new Map();
+                const newLogs = [];
+
+                rows.forEach((row, index) => {
+                    const seller = String(row["셀러명"] || row["셀러"] || row["Seller"] || row["seller"] || "").trim();
+                    if (!seller) return;
+
+                    if (!sellerMap.has(seller)) sellerMap.set(seller, { name: seller, products: [] });
+
+                    const product = String(row["상품명"] || row["상품"] || row["Product"] || row["product"] || "").trim();
+                    if (product) {
+                        const s = sellerMap.get(seller);
+                        if (!s.products.includes(product)) s.products.push(product);
+                    }
+
+                    let date = row["행사일"] || row["일정"] || row["날짜"] || row["Date"] || row["date"] || "";
+                    if (date instanceof Date) date = date.toISOString().split('T')[0];
+                    else date = String(date).trim().slice(0, 10);
+
+                    let revenue = row["매출액(억원)"] ?? row["매출액"] ?? row["매출"] ?? row["Revenue"] ?? row["revenue"] ?? "";
+                    const parsed = Number(String(revenue).replace(/,/g, ""));
+                    const rev = isNaN(parsed) ? null : parsed;
+
+                    if (product && (date || rev !== null)) {
+                        newLogs.push({
+                            id: Date.now() + index,
+                            seller,
+                            product,
+                            date: date || "",
+                            revenue: rev !== null ? rev : 0
+                        });
+                    }
+                });
+
+                rawData = Array.from(sellerMap.values()).map(s => ({ name: s.name, products: uniqueSorted(s.products) })).sort((a,b)=>koreanSort(a.name,b.name));
+                salesLogs = newLogs.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+                saveToLocal();
+                alert(`데이터 불러오기 완료!\n등록된 셀러: ${rawData.length}명\n기록: ${salesLogs.length}건`);
+                location.reload();
+            } catch (err) {
+                console.error(err);
+                alert("파일 처리 중 오류 발생: " + err.message);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function clearAllData() {
+        if (!confirm("모든 데이터를 영구 삭제하시겠습니까?")) return;
+        localStorage.removeItem('sorted_rawData');
+        localStorage.removeItem('sorted_salesLogs');
+        location.reload();
+    }
+
+    // -------------------------
+    // Misc
+    // -------------------------
+    function escapeHtml(s) {
+        return String(s ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    // -------------------------
+    // Event wiring
+    // -------------------------
+    window.onload = () => {
+        loadFromLocal();
+
+        // default view
+        renderAll();
+
+        // period change => refresh everything immediately
+        document.getElementById('filterYear').addEventListener('change', renderAll);
+        document.getElementById('filterMonth').addEventListener('change', renderAll);
+    };
+
+    window.onclick = (e) => {
+        const modal = document.getElementById('modal');
+        const pmodal = document.getElementById('productModal');
+        if (e.target === modal) closeModal();
+        if (e.target === pmodal) closeProductModal();
+    };
+</script>
+
 </body>
 </html>
