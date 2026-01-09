@@ -88,6 +88,7 @@
             </div>
             <button onclick="exportToExcel()" class="bg-emerald-600 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-emerald-700 transition-all">저장</button>
             <button onclick="triggerImport()" class="bg-slate-700 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-slate-800 transition-all">불러오기</button>
+            <button id="excelBackupBtn" onclick="setupExcelAutoBackup()" class="bg-blue-50 text-blue-700 border border-blue-100 px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-blue-100 transition-all" title="Chrome/Edge에서 폴더를 선택하면 이후 자동으로 같은 이름으로 덮어써 저장됩니다.">엑셀 자동백업</button>
             <button onclick="clearAllData()" class="bg-red-50 text-red-600 border border-red-100 px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-red-100">초기화</button>
             <input type="file" id="importFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="importData(event)">
         </div>
@@ -219,12 +220,243 @@
     const koreanSort = (a, b) => (a || '').localeCompare((b || ''), 'ko');
 
     // -------------------------
-    // Storage
-    // -------------------------
-    function saveToLocal() {
-        localStorage.setItem('sorted_rawData', JSON.stringify(rawData));
-        localStorage.setItem('sorted_salesLogs', JSON.stringify(salesLogs));
+// Storage + Auto Backup (Daily, overwrite same-day)
+// -------------------------
+const AUTO_BACKUP_PREFIX = 'sorted_auto_backup_';
+let autoBackupTimer = null;
+
+function yymmddLocal() {
+    const d = new Date();
+    const yy = String(d.getFullYear()).slice(2);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yy}${mm}${dd}`; // e.g. 260109
+}
+
+function runAutoBackupNow() {
+    try {
+        const stamp = yymmddLocal();
+        const key = AUTO_BACKUP_PREFIX + stamp; // file-name-like key ends with _YYMMDD
+        const payload = {
+            version: 1,
+            stamp,                  // 'YYMMDD'
+            createdAt: new Date().toISOString(),
+            rawData,
+            salesLogs
+        };
+
+        // Overwrite same-day backup silently (no prompt)
+        localStorage.setItem(key, JSON.stringify(payload));
+
+        // Maintain an index (optional) and prune old backups to avoid unlimited growth
+        const indexKey = AUTO_BACKUP_PREFIX + 'index';
+        let index = [];
+        try { index = JSON.parse(localStorage.getItem(indexKey) || '[]'); } catch (_) { index = []; }
+        if (!Array.isArray(index)) index = [];
+
+        // Keep only valid keys
+        index = index.filter(k => typeof k === 'string' && k.startsWith(AUTO_BACKUP_PREFIX) && k.length === AUTO_BACKUP_PREFIX.length + 6);
+
+        if (!index.includes(key)) index.push(key);
+        index.sort(); // chronological by yymmdd suffix
+
+        const KEEP_DAYS = 90; // keep last N daily backups
+        if (index.length > KEEP_DAYS) {
+            const remove = index.slice(0, index.length - KEEP_DAYS);
+            remove.forEach(k => localStorage.removeItem(k));
+            index = index.slice(-KEEP_DAYS);
+        }
+        localStorage.setItem(indexKey, JSON.stringify(index));
+    } catch (e) {
+        console.warn('[AutoBackup] failed:', e);
     }
+}
+
+function scheduleAutoBackup() {
+    // debounce to prevent too many writes when editing quickly
+    if (autoBackupTimer) clearTimeout(autoBackupTimer);
+    autoBackupTimer = setTimeout(runAutoBackupNow, 600);
+}
+
+
+// ===== Excel Auto Backup (File System Access API; Chrome/Edge) =====
+let excelBackupTimer = null;
+let excelBackupDirHandle = null;
+let excelBackupEnabled = false;
+const EXCEL_BACKUP_DB = 'st_excel_backup_db_v1';
+const EXCEL_BACKUP_STORE = 'kv';
+const EXCEL_BACKUP_HANDLE_KEY = 'excel_backup_dir_handle';
+const EXCEL_BACKUP_ENABLED_KEY = 'excel_backup_enabled';
+
+// Minimal IndexedDB KV helpers (to persist DirectoryHandle)
+function idbOpen() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(EXCEL_BACKUP_DB, 1);
+        req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains(EXCEL_BACKUP_STORE)) db.createObjectStore(EXCEL_BACKUP_STORE);
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+async function idbGet(key) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(EXCEL_BACKUP_STORE, 'readonly');
+        const store = tx.objectStore(EXCEL_BACKUP_STORE);
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+        tx.oncomplete = () => db.close();
+    });
+}
+async function idbSet(key, value) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(EXCEL_BACKUP_STORE, 'readwrite');
+        const store = tx.objectStore(EXCEL_BACKUP_STORE);
+        const req = store.put(value, key);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => reject(req.error);
+        tx.oncomplete = () => db.close();
+    });
+}
+
+function updateExcelBackupBtnUI() {
+    const btn = document.getElementById('excelBackupBtn');
+    if (!btn) return;
+    if (!window.showDirectoryPicker) {
+        btn.innerText = '엑셀 자동백업(불가)';
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        return;
+    }
+    if (excelBackupEnabled && excelBackupDirHandle) {
+        btn.innerText = '엑셀 자동백업: ON';
+        btn.classList.remove('bg-blue-50', 'text-blue-700', 'border-blue-100');
+        btn.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
+    } else {
+        btn.innerText = '엑셀 자동백업';
+        btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
+        btn.classList.add('bg-blue-50', 'text-blue-700', 'border-blue-100');
+    }
+}
+
+async function setupExcelAutoBackup() {
+    if (!window.showDirectoryPicker) {
+        alert('이 브라우저는 폴더 선택 기반 자동 덮어쓰기 저장을 지원하지 않습니다. (Chrome/Edge 권장)');
+        return;
+    }
+    try {
+        const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+        const perm = await dir.requestPermission({ mode: 'readwrite' });
+        if (perm !== 'granted') {
+            alert('폴더 쓰기 권한이 필요합니다.');
+            return;
+        }
+        excelBackupDirHandle = dir;
+        excelBackupEnabled = true;
+        localStorage.setItem(EXCEL_BACKUP_ENABLED_KEY, '1');
+        await idbSet(EXCEL_BACKUP_HANDLE_KEY, dir);
+
+        updateExcelBackupBtnUI();
+        // immediately create/update today's backup once
+        scheduleExcelBackup();
+        alert('엑셀 자동백업이 설정되었습니다. 데이터가 바뀔 때마다 선택한 폴더에 하루 1개 파일로 자동 덮어써 저장됩니다.');
+    } catch (e) {
+        // user cancel is normal
+        if (String(e?.name || '').includes('Abort')) return;
+        console.warn('[ExcelAutoBackup] setup failed:', e);
+        alert('엑셀 자동백업 설정 실패: ' + (e?.message || e));
+    }
+}
+
+async function loadExcelAutoBackupSetting() {
+    try {
+        excelBackupEnabled = localStorage.getItem(EXCEL_BACKUP_ENABLED_KEY) === '1';
+        if (!excelBackupEnabled) {
+            updateExcelBackupBtnUI();
+            return;
+        }
+        if (!window.showDirectoryPicker) {
+            excelBackupEnabled = false;
+            updateExcelBackupBtnUI();
+            return;
+        }
+        const dir = await idbGet(EXCEL_BACKUP_HANDLE_KEY);
+        if (!dir) {
+            excelBackupEnabled = false;
+            updateExcelBackupBtnUI();
+            return;
+        }
+        const perm = await dir.queryPermission({ mode: 'readwrite' });
+        if (perm !== 'granted') {
+            // don't auto-prompt; keep OFF to avoid surprise dialogs
+            excelBackupEnabled = false;
+            updateExcelBackupBtnUI();
+            return;
+        }
+        excelBackupDirHandle = dir;
+        excelBackupEnabled = true;
+        updateExcelBackupBtnUI();
+    } catch (e) {
+        console.warn('[ExcelAutoBackup] load failed:', e);
+        excelBackupEnabled = false;
+        updateExcelBackupBtnUI();
+    }
+}
+
+function scheduleExcelBackup() {
+    if (!excelBackupEnabled || !excelBackupDirHandle) return;
+    if (!window.XLSX) return;
+    if (excelBackupTimer) clearTimeout(excelBackupTimer);
+    excelBackupTimer = setTimeout(runExcelBackupNow, 800);
+}
+
+function buildExportAOAForBackup() {
+    // Same export structure and sorting as manual export
+    return buildSortedExportAOA();
+}
+
+async function runExcelBackupNow() {
+    try {
+        if (!excelBackupEnabled || !excelBackupDirHandle) return;
+        if (!window.XLSX) return;
+
+        const stamp = yymmddLocal(); // 'YYMMDD'
+        const filename = `seller_backup_${stamp}.xlsx`; // ends with _YYMMDD.xlsx
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(buildExportAOAForBackup());
+        XLSX.utils.book_append_sheet(wb, ws, "매출현황");
+
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+        const fileHandle = await excelBackupDirHandle.getFileHandle(filename, { create: true });
+        const writable = await fileHandle.createWritable(); // overwrites silently
+        await writable.write(blob);
+        await writable.close();
+        // no alert; silent
+    } catch (e) {
+        console.warn('[ExcelAutoBackup] write failed:', e);
+        // If permission is lost, turn off without prompting
+        if (String(e?.name || '').includes('NotAllowed') || String(e?.name || '').includes('Security')) {
+            excelBackupEnabled = false;
+            excelBackupDirHandle = null;
+            localStorage.setItem(EXCEL_BACKUP_ENABLED_KEY, '0');
+            updateExcelBackupBtnUI();
+        }
+    }
+}
+
+function saveToLocal() {
+    localStorage.setItem('sorted_rawData', JSON.stringify(rawData));
+    localStorage.setItem('sorted_salesLogs', JSON.stringify(salesLogs));
+    scheduleAutoBackup();
+    scheduleExcelBackup();
+}
     function loadFromLocal() {
         try {
             rawData = JSON.parse(localStorage.getItem('sorted_rawData') || '[]') || [];
@@ -800,91 +1032,87 @@
     // -------------------------
     // Excel import/export (rev5 compatible)
     // -------------------------
-	function exportToExcel() {
-		// Export columns: 셀러명, 상품명, 행사일, 매출액(억원)
-		// Sorting priority:
-		//  1) 상품 유무(상품 없는 셀러는 맨 아래)
-		//  2) 셀러명(가나다순)
-		//  3) 행사일(오름차순)
-		//  (tie-breakers) 상품명(가나다순) -> 매출액(오름차순)
+	
+function buildSortedExportAOA() {
+    // Columns: 셀러명, 상품명, 행사일, 매출액(억원)
+    // Sort priority: 1) 상품 유무(상품 없는 셀러는 맨 밑) 2) 셀러명(가나다) 3) 행사일(오름차순)
+    // Tie-breakers: 상품명(가나다) -> 매출액(오름차순)
 
-		const header = ["셀러명", "상품명", "행사일", "매출액(억원)"];
+    const header = ["셀러명", "상품명", "행사일", "매출액(억원)"];
 
-		// Seller -> has any product?
-		const sellerHasProduct = new Map();
+    // 상품 유무 판단: 기본은 rawData의 연결상품 기준.
+    // 단, rawData에 없는 셀러가 로그에만 존재하는 경우는 로그 기준으로 "상품 있음" 처리.
+    const sellerHasProduct = new Map();
+    (rawData || []).forEach(s => {
+        const products = Array.isArray(s.products) ? s.products : [];
+        sellerHasProduct.set(s.name || "", products.length > 0);
+    });
+    (salesLogs || []).forEach(l => {
+        const seller = l?.seller || "";
+        if (!seller) return;
+        if (!sellerHasProduct.has(seller)) sellerHasProduct.set(seller, !!l?.product);
+    });
 
-		// from rawData 연결상품
-		(rawData || []).forEach(s => {
-			const has = Array.isArray(s.products) && s.products.length > 0;
-			sellerHasProduct.set(s.name, has);
-		});
+    // Build rows
+    const rows = [];
 
-		// from logs (연결상품 배열이 비어도 로그가 있으면 "상품 있음" 처리)
-		(salesLogs || []).forEach(l => {
-			if (!l || !l.seller) return;
-			const prev = sellerHasProduct.get(l.seller);
-			if (prev === undefined) sellerHasProduct.set(l.seller, !!l.product);
-			else if (!prev && l.product) sellerHasProduct.set(l.seller, true);
-		});
+    // 1) Logs
+    (salesLogs || []).forEach(l => {
+        rows.push({
+            seller: l?.seller || "",
+            product: l?.product || "",
+            date: l?.date || "",
+            revenue: (l?.revenue === null || l?.revenue === undefined) ? "" : l.revenue
+        });
+    });
 
-		// Build export rows
-		const rows = [];
+    // 2) Connections without logs + sellers without products
+    (rawData || []).forEach(s => {
+        const seller = s?.name || "";
+        const products = Array.isArray(s?.products) ? s.products : [];
 
-		// 1) logs
-		(salesLogs || []).forEach(l => {
-			rows.push({
-				seller: l.seller || "",
-				product: l.product || "",
-				date: l.date || "",
-				revenue: (l.revenue === null || l.revenue === undefined) ? "" : l.revenue
-			});
-		});
+        if (!products.length) {
+            rows.push({ seller, product: "", date: "", revenue: "" });
+            return;
+        }
+        products.forEach(p => {
+            const has = (salesLogs || []).some(l => l && l.seller === seller && l.product === p);
+            if (!has) rows.push({ seller, product: p || "", date: "", revenue: "" });
+        });
+    });
 
-		// 2) connections w/o logs + sellers with no products
-		(rawData || []).forEach(s => {
-			const sellerName = s.name || "";
-			const products = Array.isArray(s.products) ? s.products : [];
+    // Sort
+    rows.sort((a, b) => {
+        const aHas = sellerHasProduct.get(a.seller) ? 1 : 0;
+        const bHas = sellerHasProduct.get(b.seller) ? 1 : 0;
+        if (aHas !== bHas) return bHas - aHas; // 상품 있음 먼저
 
-			if (!products.length) {
-				// seller row even without products
-				rows.push({ seller: sellerName, product: "", date: "", revenue: "" });
-				return;
-			}
+        const sellerCmp = (a.seller || "").localeCompare((b.seller || ""), "ko");
+        if (sellerCmp !== 0) return sellerCmp;
 
-			products.forEach(p => {
-				const has = (salesLogs || []).some(l => l && l.seller === sellerName && l.product === p);
-				if (!has) rows.push({ seller: sellerName, product: p || "", date: "", revenue: "" });
-			});
-		});
+        const aDate = (a.date || "").trim() ? String(a.date).trim().slice(0, 10) : "9999-12-31";
+        const bDate = (b.date || "").trim() ? String(b.date).trim().slice(0, 10) : "9999-12-31";
+        if (aDate !== bDate) return aDate.localeCompare(bDate);
 
-		// Sort rows with required priority
-		rows.sort((a, b) => {
-			const aHas = sellerHasProduct.get(a.seller) ? 1 : 0;
-			const bHas = sellerHasProduct.get(b.seller) ? 1 : 0;
-			if (aHas !== bHas) return bHas - aHas; // 상품 있음 먼저
+        const prodCmp = (a.product || "").localeCompare((b.product || ""), "ko");
+        if (prodCmp !== 0) return prodCmp;
 
-			const sCmp = (a.seller || "").localeCompare((b.seller || ""), "ko");
-			if (sCmp !== 0) return sCmp;
+        const ar = (a.revenue === "" ? Number.POSITIVE_INFINITY : Number(a.revenue));
+        const br = (b.revenue === "" ? Number.POSITIVE_INFINITY : Number(b.revenue));
+        return ar - br;
+    });
 
-			const aDate = (a.date || "").trim() ? a.date.trim().slice(0, 10) : "9999-12-31";
-			const bDate = (b.date || "").trim() ? b.date.trim().slice(0, 10) : "9999-12-31";
-			if (aDate !== bDate) return aDate.localeCompare(bDate);
+    const aoa = [header, ...rows.map(r => [r.seller, r.product, r.date, r.revenue])];
+    return aoa;
+}
 
-			const pCmp = (a.product || "").localeCompare((b.product || ""), "ko");
-			if (pCmp !== 0) return pCmp;
-
-			const ar = (a.revenue === "" ? Number.POSITIVE_INFINITY : Number(a.revenue));
-			const br = (b.revenue === "" ? Number.POSITIVE_INFINITY : Number(b.revenue));
-			return ar - br;
-		});
-
-		const excelData = [header, ...rows.map(r => [r.seller, r.product, r.date, r.revenue])];
-
-		const wb = XLSX.utils.book_new();
-		const ws = XLSX.utils.aoa_to_sheet(excelData);
-		XLSX.utils.book_append_sheet(wb, ws, "매출현황");
-		XLSX.writeFile(wb, `Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
-	}
+function exportToExcel() {
+    const excelData = buildSortedExportAOA();
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(excelData);
+    XLSX.utils.book_append_sheet(wb, ws, "매출현황");
+    XLSX.writeFile(wb, `Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
 
 
     function triggerImport() { document.getElementById('importFile').click(); }
@@ -973,6 +1201,10 @@
     // -------------------------
     window.onload = () => {
         loadFromLocal();
+
+        // restore Excel auto-backup setting (if previously granted)
+        loadExcelAutoBackupSetting();
+        updateExcelBackupBtnUI();
 
         // default view
         renderAll();
