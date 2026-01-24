@@ -32,6 +32,142 @@
             background-color: #eff6ff !important;
             box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
         }
+
+        /* 빈 상태 카드 스타일 */
+        .empty-state-card {
+            border: 2px dashed #cbd5e1;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+        .empty-state-card:hover {
+            border-color: #2563eb;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        }
+
+        /* 캘린더 스타일 */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+        .calendar-day {
+            aspect-ratio: 1 / 0.95;
+            background: white;
+            border-radius: 12px;
+            padding: 3px 5px;
+            transition: all 0.2s;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .calendar-day:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 5;
+        }
+        .calendar-day.today {
+            border: 2px solid #2563eb;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        }
+        .calendar-day.other-month {
+            background: #f8fafc;
+            opacity: 0.5;
+        }
+        .calendar-day.has-events {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-color: #86efac;
+        }
+        .calendar-day-num {
+            font-size: clamp(10px, 1.2vw, 14px);
+            line-height: 1;
+            margin-bottom: 2px;
+            flex-shrink: 0;
+        }
+        .calendar-events-container {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            min-height: 0;
+        }
+        .calendar-event {
+            font-size: clamp(9px, 1vw, 12px);
+            padding: 2px 4px;
+            border-radius: 3px;
+            cursor: grab;
+            transition: all 0.15s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-shrink: 0;
+            line-height: 1.2;
+        }
+        .calendar-event:active {
+            cursor: grabbing;
+        }
+        .calendar-event:hover {
+            transform: scale(1.02);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        .calendar-more-btn {
+            font-size: clamp(9px, 1vw, 12px);
+            color: #64748b;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 3px;
+            background: #f1f5f9;
+            text-align: center;
+            flex-shrink: 0;
+            line-height: 1.2;
+        }
+        .calendar-more-btn:hover {
+            background: #e2e8f0;
+            color: #2563eb;
+        }
+        .calendar-header-day {
+            text-align: center;
+            font-weight: 900;
+            font-size: clamp(10px, 1.1vw, 13px);
+            text-transform: uppercase;
+            padding: 8px 0;
+            color: #64748b;
+        }
+        .calendar-header-day.sun { color: #ef4444; }
+        .calendar-header-day.sat { color: #3b82f6; }
+        .calendar-header-day {
+            text-align: center;
+            font-weight: 900;
+            font-size: 11px;
+            text-transform: uppercase;
+            padding: 12px 0;
+            color: #64748b;
+        }
+        .calendar-header-day.sun { color: #ef4444; }
+        .calendar-header-day.sat { color: #3b82f6; }
+        .event-color-0 { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; }
+        .event-color-1 { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #166534; }
+        .event-color-2 { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e; }
+        .event-color-3 { background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); color: #9d174d; }
+        .event-color-4 { background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); color: #3730a3; }
+        .event-color-5 { background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%); color: #115e59; }
+
+        /* 이벤트 상세 팝업 */
+        .event-tooltip {
+            position: absolute;
+            z-index: 100;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 16px;
+            min-width: 280px;
+            max-width: 350px;
+            animation: tooltipIn 0.2s ease-out;
+        }
+        @keyframes tooltipIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 
@@ -41,32 +177,43 @@
     <header class="bg-white border-b shadow-sm z-30 px-8 py-4 flex flex-col lg:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-3 flex-wrap">
             <div class="flex items-center mr-2">
-                <img src="data:image/jpeg;base64,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" alt="Linkers" class="h-7 md:h-8 w-auto" />
+                <img src="logo.jpg" alt="Seller Dashboard Logo" class="h-7 md:h-8 w-auto object-contain" />
             </div>
 
             <!-- 기간 필터 -->
             <div class="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm items-center gap-1">
-                <button id="viewAllBtn" onclick="resetGlobalFilter()" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">전체 기간</button>
-                <div class="w-px h-4 bg-slate-200 mx-1"></div>
-                <select id="filterYear" class="px-3 py-2 text-xs font-bold rounded-lg text-slate-500 bg-slate-50 border border-slate-200 outline-none">
+                <button onclick="navigatePeriod(-1)" class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-all" title="이전">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </button>
+                <button id="viewAllBtn" onclick="resetGlobalFilter()" class="px-3 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">전체</button>
+                <div class="w-px h-4 bg-slate-200"></div>
+                <select id="filterYear" class="px-2 py-2 text-xs font-bold rounded-lg text-slate-500 bg-slate-50 border border-slate-200 outline-none">
                     <option value="">연도</option>
                     <option value="2024">2024</option>
                     <option value="2025">2025</option>
                     <option value="2026" selected>2026</option>
                 </select>
-                <select id="filterMonth" class="px-3 py-2 text-xs font-bold rounded-lg text-slate-500 bg-slate-50 border border-slate-200 outline-none">
+                <select id="filterMonth" class="px-2 py-2 text-xs font-bold rounded-lg text-slate-500 bg-slate-50 border border-slate-200 outline-none">
                     <option value="">월</option>
                     <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option>
                     <option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option>
                     <option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
                 </select>
+                <button onclick="navigatePeriod(1)" class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-all" title="다음">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </button>
             </div>
 
             <!-- 뷰 전환 -->
             <div class="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm items-center gap-1">
-                <button id="viewSellerBtn" onclick="switchView('seller')" class="px-4 py-2 text-xs font-bold rounded-lg active-view-btn">셀러</button>
-                <button id="viewProductBtn" onclick="switchView('product')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">상품</button>
-                <button id="viewStatsBtn" onclick="switchView('stats')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">요약</button>
+                <button id="viewSellerBtn" onclick="switchView('seller')" class="px-4 py-2 text-xs font-bold rounded-lg active-view-btn">👤 셀러</button>
+                <button id="viewProductBtn" onclick="switchView('product')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">📦 상품</button>
+                <button id="viewCalendarBtn" onclick="switchView('calendar')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">📅 캘린더</button>
+                <button id="viewStatsBtn" onclick="switchView('stats')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">📊 요약</button>
             </div>
 
             <!-- 셀러 필터 (상품 있음/없음: 해당 기간 로그 기준) -->
@@ -75,6 +222,14 @@
                 <button onclick="setSellerFilter('hasProduct')" id="filterHas" class="px-3 py-2 text-[11px] font-bold rounded-lg text-slate-500">상품 있음</button>
                 <button onclick="setSellerFilter('noProduct')" id="filterNo" class="px-3 py-2 text-[11px] font-bold rounded-lg text-slate-500">상품 없음</button>
             </div>
+
+            <!-- 신규 추가 버튼 -->
+            <button onclick="openNewEntryModal()" class="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                신규 추가
+            </button>
         </div>
 
         <!-- 검색 및 데이터 관리 -->
@@ -88,6 +243,7 @@
             </div>
             <button onclick="exportToExcel()" class="bg-emerald-600 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-emerald-700 transition-all">저장</button>
             <button onclick="triggerImport()" class="bg-slate-700 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-slate-800 transition-all">불러오기</button>
+            <button id="excelBackupBtn" onclick="setupExcelAutoBackup()" class="bg-blue-50 text-blue-700 border border-blue-100 px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-blue-100 transition-all" title="Chrome/Edge에서 폴더를 선택하면 이후 자동으로 같은 이름으로 덮어써 저장됩니다.">엑셀 자동백업</button>
             <button onclick="clearAllData()" class="bg-red-50 text-red-600 border border-red-100 px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-red-100">초기화</button>
             <input type="file" id="importFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="importData(event)">
         </div>
@@ -98,6 +254,49 @@
         <div class="max-w-[1500px] mx-auto">
             <!-- 그리드 뷰 (셀러/상품) -->
             <div id="mainGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"></div>
+
+            <!-- 캘린더 뷰 -->
+            <div id="calendarView" class="hidden space-y-4 animate-in fade-in duration-500">
+                <!-- 캘린더 그리드 -->
+                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+                    <!-- 범례 -->
+                    <div class="flex items-center justify-end gap-4 mb-4">
+                        <div class="flex items-center gap-2 text-xs">
+                            <span class="w-3 h-3 rounded-full bg-gradient-to-r from-green-200 to-green-300"></span>
+                            <span class="text-slate-500 font-medium">일정 있음</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs">
+                            <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                            <span class="text-slate-500 font-medium">오늘</span>
+                        </div>
+                    </div>
+                    <!-- 요일 헤더 -->
+                    <div class="calendar-grid mb-2">
+                        <div class="calendar-header-day sun">일</div>
+                        <div class="calendar-header-day">월</div>
+                        <div class="calendar-header-day">화</div>
+                        <div class="calendar-header-day">수</div>
+                        <div class="calendar-header-day">목</div>
+                        <div class="calendar-header-day">금</div>
+                        <div class="calendar-header-day sat">토</div>
+                    </div>
+                    <!-- 날짜 그리드 -->
+                    <div id="calendarGrid" class="calendar-grid"></div>
+                </div>
+
+                <!-- 선택된 날짜의 일정 목록 -->
+                <div id="selectedDateEvents" class="hidden bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 id="selectedDateTitle" class="text-lg font-black text-slate-800"></h3>
+                        <button onclick="closeSelectedDateEvents()" class="text-slate-400 hover:text-slate-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="selectedDateEventsList" class="space-y-3"></div>
+                </div>
+            </div>
 
             <!-- 월별 요약 뷰 (통계) -->
             <div id="statsView" class="hidden space-y-8 animate-in fade-in duration-500">
@@ -133,33 +332,124 @@
         <p class="text-slate-400 text-xs font-medium mt-1 md:mt-0">Seller Management System</p>
     </footer>
 
-    <!-- 모달 팝업 (셀러) -->
+    <!-- 신규 데이터 입력 모달 -->
+    <div id="newEntryModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-150">
+            <div class="p-8 border-b bg-gradient-to-r from-blue-600 to-indigo-600 relative">
+                <h2 class="text-2xl font-black text-white tracking-tight">신규 데이터 추가</h2>
+                <p class="text-blue-100 text-sm mt-1">셀러와 상품 정보를 입력하세요</p>
+                <button onclick="closeNewEntryModal()" class="absolute top-8 right-8 text-white/70 hover:text-white font-bold text-2xl transition-colors">×</button>
+            </div>
+            <div class="p-8 space-y-5">
+                <!-- 셀러명 (필수) -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                        셀러명 
+                        <span class="text-red-500">*</span>
+                        <span class="text-slate-400 font-normal normal-case">(필수)</span>
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="newSellerName" list="existingSellersList"
+                               class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                               placeholder="셀러명 입력 또는 선택">
+                        <datalist id="existingSellersList"></datalist>
+                    </div>
+                </div>
+
+                <!-- 상품명 (선택) -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                        상품명
+                        <span class="text-slate-400 font-normal normal-case">(선택)</span>
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="newProductName" list="existingProductsList"
+                               class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                               placeholder="상품명 입력 또는 선택">
+                        <datalist id="existingProductsList"></datalist>
+                    </div>
+                </div>
+
+                <!-- 행사일 (선택) -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                        행사일
+                        <span class="text-slate-400 font-normal normal-case">(선택)</span>
+                    </label>
+                    <input type="date" id="newEventDate"
+                           class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
+                </div>
+
+                <!-- 매출액 (선택) -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                        매출액
+                        <span class="text-slate-400 font-normal normal-case">(선택, 억원 단위)</span>
+                    </label>
+                    <input type="number" id="newRevenue" step="0.01" min="0"
+                           class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                           placeholder="0.00">
+                </div>
+
+                <!-- 버튼 영역 -->
+                <div class="flex gap-3 pt-4">
+                    <button onclick="closeNewEntryModal()" 
+                            class="flex-1 py-3 px-4 border-2 border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">
+                        취소
+                    </button>
+                    <button onclick="submitNewEntry()" 
+                            class="flex-1 py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg">
+                        추가하기
+                    </button>
+                </div>
+
+                <!-- 안내 문구 -->
+                <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 mt-2">
+                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                        <span class="font-bold text-slate-600">💡 TIP:</span> 
+                        셀러명만 입력하면 셀러만 추가됩니다. 상품명까지 입력하면 셀러-상품 연결이 생성됩니다. 
+                        행사일/매출까지 입력하면 매출 기록도 함께 생성됩니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 셀러 모달 -->
     <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in duration-150">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in duration-150">
             <div class="p-8 border-b bg-slate-50 relative">
-                <h2 id="modalTitle" class="text-2xl font-black text-slate-800 tracking-tight uppercase leading-none text-blue-600">관리</h2>
+                <h2 id="modalTitle" class="text-2xl font-black text-slate-800 tracking-tight uppercase leading-none"></h2>
                 <button onclick="closeModal()" class="absolute top-8 right-8 text-slate-400 hover:text-slate-600 font-bold text-2xl">×</button>
-                <div class="flex gap-6 mt-6">
-                    <button id="tabRel" onclick="switchTab('rel')" class="pb-2 text-sm font-bold active-tab transition-all">행사 상품</button>
-                    <button id="tabLog" onclick="switchTab('log')" class="pb-2 text-sm font-bold text-slate-400 transition-all">일정/매출 기록</button>
+                <div class="flex gap-1 mt-4">
+                    <button id="tabRel" onclick="switchTab('rel')" class="text-xs font-black uppercase px-4 py-2 text-slate-400 border-b-2 border-transparent transition-all active-tab">행사상품</button>
+                    <button id="tabLog" onclick="switchTab('log')" class="text-xs font-black uppercase px-4 py-2 text-slate-400 border-b-2 border-transparent transition-all">일정/매출 기록</button>
                 </div>
             </div>
             <div class="p-8">
-                <!-- 탭 1: 행사 상품 목록 (해당 기간 로그 기준) -->
-                <div id="tabContentRel" class="space-y-6">
-                    <div id="modalItemList" class="flex flex-wrap gap-2 max-h-56 overflow-y-auto custom-scrollbar pr-1"></div>
+                <!-- 행사상품 탭 (해당 기간 로그에 존재하는 상품만 보여줌) -->
+                <div id="tabContentRel">
+                    <div id="modalItemList" class="flex flex-wrap gap-2 max-h-96 overflow-y-auto custom-scrollbar pr-1"></div>
                 </div>
 
-                <!-- 탭 2: 일정/매출 기록 (신규 입력은 항상 마스터 상품 선택 가능) -->
+                <!-- 일정/매출 기록 탭 -->
                 <div id="tabContentLog" class="hidden space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div class="flex flex-col gap-1">
                             <label class="text-[10px] font-bold text-slate-400 uppercase">행사일</label>
-                            <input type="date" id="logDate" class="w-full px-3 py-2 border rounded-lg text-sm outline-none">
+                            <input type="date" id="logDate" class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div class="flex flex-col gap-1">
-                            <label class="text-[10px] font-bold text-slate-400 uppercase">상품명</label>
-                            <select id="logProduct" class="w-full px-3 py-2 border rounded-lg text-sm outline-none"></select>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">상품</label>
+                            <div class="flex gap-1">
+                                <input type="text" id="logProduct" list="logProductList" class="flex-1 px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="상품 선택 또는 입력">
+                                <button type="button" onclick="showProductList()" class="px-2 py-2 border rounded-lg hover:bg-slate-50 transition-all" title="상품 목록 보기">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <datalist id="logProductList"></datalist>
                         </div>
                         <div class="flex flex-col gap-1">
                             <label class="text-[10px] font-bold text-slate-400 uppercase">매출액(억원)</label>
@@ -216,194 +506,723 @@
 
     let currentProductTarget = ''; // product modal
 
+    // Calendar state
+    let calendarYear = new Date().getFullYear();
+    let calendarMonth = new Date().getMonth();
+    let selectedCalendarDate = null;
+
     const koreanSort = (a, b) => (a || '').localeCompare((b || ''), 'ko');
 
     // -------------------------
-    // Storage
+    // Storage + Auto Backup (Daily, overwrite same-day)
+    // -------------------------
+    const AUTO_BACKUP_PREFIX = 'sorted_auto_backup_';
+    let autoBackupTimer = null;
+
+    function yymmddLocal() {
+        const d = new Date();
+        const yy = String(d.getFullYear()).slice(2);
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yy}${mm}${dd}`;
+    }
+
+    function runAutoBackupNow() {
+        try {
+            const stamp = yymmddLocal();
+            const key = AUTO_BACKUP_PREFIX + stamp;
+            const payload = {
+                version: 1,
+                stamp,
+                createdAt: new Date().toISOString(),
+                rawData,
+                salesLogs
+            };
+            localStorage.setItem(key, JSON.stringify(payload));
+
+            const indexKey = AUTO_BACKUP_PREFIX + 'index';
+            let index = [];
+            try { index = JSON.parse(localStorage.getItem(indexKey) || '[]'); } catch (_) { index = []; }
+            if (!Array.isArray(index)) index = [];
+            index = index.filter(k => typeof k === 'string' && k.startsWith(AUTO_BACKUP_PREFIX) && k.length === AUTO_BACKUP_PREFIX.length + 6);
+            if (!index.includes(key)) index.push(key);
+            index.sort();
+
+            const KEEP_DAYS = 90;
+            if (index.length > KEEP_DAYS) {
+                const remove = index.slice(0, index.length - KEEP_DAYS);
+                remove.forEach(k => localStorage.removeItem(k));
+                index = index.slice(-KEEP_DAYS);
+            }
+            localStorage.setItem(indexKey, JSON.stringify(index));
+        } catch (e) {
+            console.warn('[AutoBackup] failed:', e);
+        }
+    }
+
+    function scheduleAutoBackup() {
+        if (autoBackupTimer) clearTimeout(autoBackupTimer);
+        autoBackupTimer = setTimeout(runAutoBackupNow, 600);
+    }
+
+    // ===== Excel Auto Backup =====
+    let excelBackupTimer = null;
+    let excelBackupDirHandle = null;
+    let excelBackupEnabled = false;
+    const EXCEL_BACKUP_DB = 'st_excel_backup_db_v1';
+    const EXCEL_BACKUP_STORE = 'kv';
+    const EXCEL_BACKUP_HANDLE_KEY = 'excel_backup_dir_handle';
+    const EXCEL_BACKUP_ENABLED_KEY = 'excel_backup_enabled';
+
+    function idbOpen() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(EXCEL_BACKUP_DB, 1);
+            req.onupgradeneeded = () => req.result.createObjectStore(EXCEL_BACKUP_STORE);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+    async function idbSet(key, val) {
+        const db = await idbOpen();
+        return new Promise((res, rej) => {
+            const tx = db.transaction(EXCEL_BACKUP_STORE, 'readwrite');
+            tx.objectStore(EXCEL_BACKUP_STORE).put(val, key);
+            tx.oncomplete = () => res();
+            tx.onerror = () => rej(tx.error);
+        });
+    }
+    async function idbGet(key) {
+        const db = await idbOpen();
+        return new Promise((res, rej) => {
+            const tx = db.transaction(EXCEL_BACKUP_STORE, 'readonly');
+            const req = tx.objectStore(EXCEL_BACKUP_STORE).get(key);
+            req.onsuccess = () => res(req.result);
+            req.onerror = () => rej(req.error);
+        });
+    }
+
+    async function setupExcelAutoBackup() {
+        if (!('showDirectoryPicker' in window)) {
+            alert('이 기능은 Chrome 또는 Edge에서만 지원됩니다.');
+            return;
+        }
+        try {
+            const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+            excelBackupDirHandle = dirHandle;
+            excelBackupEnabled = true;
+            await idbSet(EXCEL_BACKUP_HANDLE_KEY, dirHandle);
+            await idbSet(EXCEL_BACKUP_ENABLED_KEY, true);
+            updateExcelBackupBtnUI();
+            alert('엑셀 자동백업이 활성화되었습니다.\n데이터 변경 시 자동으로 seller_dashboard_backup.xlsx로 저장됩니다.');
+            runExcelAutoBackupNow();
+        } catch (e) {
+            if (e.name !== 'AbortError') console.error('[ExcelAutoBackup] setup error:', e);
+        }
+    }
+
+    async function loadExcelAutoBackupSetting() {
+        try {
+            const handle = await idbGet(EXCEL_BACKUP_HANDLE_KEY);
+            const enabled = await idbGet(EXCEL_BACKUP_ENABLED_KEY);
+            if (handle && enabled) {
+                const perm = await handle.queryPermission({ mode: 'readwrite' });
+                if (perm === 'granted') {
+                    excelBackupDirHandle = handle;
+                    excelBackupEnabled = true;
+                }
+            }
+        } catch (e) { console.warn('[ExcelAutoBackup] load setting error:', e); }
+    }
+
+    function updateExcelBackupBtnUI() {
+        const btn = document.getElementById('excelBackupBtn');
+        if (!btn) return;
+        if (excelBackupEnabled) {
+            btn.classList.remove('bg-blue-50', 'text-blue-700', 'border-blue-100');
+            btn.classList.add('bg-green-100', 'text-green-700', 'border-green-200');
+            btn.textContent = '✓ 엑셀 자동백업 ON';
+        } else {
+            btn.classList.remove('bg-green-100', 'text-green-700', 'border-green-200');
+            btn.classList.add('bg-blue-50', 'text-blue-700', 'border-blue-100');
+            btn.textContent = '엑셀 자동백업';
+        }
+    }
+
+    async function runExcelAutoBackupNow() {
+        if (!excelBackupEnabled || !excelBackupDirHandle) return;
+        try {
+            const perm = await excelBackupDirHandle.requestPermission({ mode: 'readwrite' });
+            if (perm !== 'granted') { excelBackupEnabled = false; updateExcelBackupBtnUI(); return; }
+
+            const wb = XLSX.utils.book_new();
+            const rows = [];
+            salesLogs.forEach(l => {
+                rows.push({ '셀러명': l.seller, '상품명': l.product, '행사일': l.date, '매출액(억원)': l.revenue });
+            });
+            rawData.forEach(s => {
+                (s.products || []).forEach(p => {
+                    if (!rows.some(r => r['셀러명'] === s.name && r['상품명'] === p)) {
+                        rows.push({ '셀러명': s.name, '상품명': p, '행사일': '', '매출액(억원)': '' });
+                    }
+                });
+                if (!(s.products || []).length && !rows.some(r => r['셀러명'] === s.name)) {
+                    rows.push({ '셀러명': s.name, '상품명': '', '행사일': '', '매출액(억원)': '' });
+                }
+            });
+            rows.sort((a,b) => koreanSort(a['셀러명'], b['셀러명']) || koreanSort(a['상품명'], b['상품명']));
+            const ws = XLSX.utils.json_to_sheet(rows, { header: ['셀러명','상품명','행사일','매출액(억원)'] });
+            XLSX.utils.book_append_sheet(wb, ws, 'Data');
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const fileHandle = await excelBackupDirHandle.getFileHandle('seller_dashboard_backup.xlsx', { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(new Blob([wbout], { type: 'application/octet-stream' }));
+            await writable.close();
+        } catch (e) {
+            console.error('[ExcelAutoBackup] write error:', e);
+        }
+    }
+
+    function scheduleExcelAutoBackup() {
+        if (excelBackupTimer) clearTimeout(excelBackupTimer);
+        excelBackupTimer = setTimeout(runExcelAutoBackupNow, 1000);
+    }
+
+    // -------------------------
+    // Local Storage
     // -------------------------
     function saveToLocal() {
         localStorage.setItem('sorted_rawData', JSON.stringify(rawData));
         localStorage.setItem('sorted_salesLogs', JSON.stringify(salesLogs));
+        scheduleAutoBackup();
+        scheduleExcelAutoBackup();
     }
+
     function loadFromLocal() {
-        try {
-            rawData = JSON.parse(localStorage.getItem('sorted_rawData') || '[]') || [];
-            salesLogs = JSON.parse(localStorage.getItem('sorted_salesLogs') || '[]') || [];
-        } catch (e) {
-            rawData = [];
-            salesLogs = [];
-        }
-        rawData.forEach(s => { s.products = Array.isArray(s.products) ? s.products : []; });
-        salesLogs = Array.isArray(salesLogs) ? salesLogs : [];
+        rawData = JSON.parse(localStorage.getItem('sorted_rawData') || '[]');
+        salesLogs = JSON.parse(localStorage.getItem('sorted_salesLogs') || '[]');
+        if (!Array.isArray(rawData)) rawData = [];
+        if (!Array.isArray(salesLogs)) salesLogs = [];
+        rawData.sort((a,b) => koreanSort(a.name, b.name));
+        salesLogs.sort((a,b) => (b.date||'').localeCompare(a.date||''));
     }
 
     // -------------------------
-    // Period filter helpers
+    // Filter period
     // -------------------------
     function getPeriod() {
-        const year = document.getElementById('filterYear').value || '';
-        const month = document.getElementById('filterMonth').value || '';
-        const filterKey = (year && month) ? `${year}-${month}` : (year ? year : '');
-        const label = (year && month) ? `${year}-${month}` : (year ? `${year}` : '전체');
-        return { year, month, filterKey, label };
+        const y = document.getElementById('filterYear').value;
+        const m = document.getElementById('filterMonth').value;
+        if (y && m) return { year: y, month: m, label: `${y}년 ${m}월` };
+        if (y) return { year: y, month: null, label: y };
+        return { year: null, month: null, label: '전체' };
     }
 
     function filterLogsByPeriod(logs) {
         const { year, month } = getPeriod();
-        if (year && month) return logs.filter(l => (l.date || '').includes(`${year}-${month}`));
-        if (year) return logs.filter(l => (l.date || '').startsWith(year + '-'));
-        return logs.slice();
-    }
-
-    function uniqueSorted(arr) {
-        return Array.from(new Set(arr.filter(Boolean))).sort(koreanSort);
+        return logs.filter(l => {
+            if (!l.date) return false;
+            const d = String(l.date);
+            if (year && month) return d.startsWith(`${year}-${month}`);
+            if (year) return d.startsWith(year);
+            return true;
+        });
     }
 
     function resetGlobalFilter() {
-        document.getElementById('filterYear').value = "";
-        document.getElementById('filterMonth').value = "";
+        document.getElementById('filterYear').value = '';
+        document.getElementById('filterMonth').value = '';
         renderAll();
     }
 
     // -------------------------
-    // UI controls
+    // Utility
     // -------------------------
+    const uniqueSorted = arr => [...new Set(arr.filter(Boolean))].sort(koreanSort);
+
+    // -------------------------
+    // View switching
+    // -------------------------
+    function switchView(v) {
+        currentView = v;
+        ['seller', 'product', 'calendar', 'stats'].forEach(k => {
+            const btn = document.getElementById('view' + k.charAt(0).toUpperCase() + k.slice(1) + 'Btn');
+            if (btn) {
+                btn.classList.toggle('active-view-btn', k === v);
+                btn.classList.toggle('text-slate-500', k !== v);
+            }
+        });
+        document.getElementById('mainGrid').classList.toggle('hidden', v === 'stats' || v === 'calendar');
+        document.getElementById('statsView').classList.toggle('hidden', v !== 'stats');
+        document.getElementById('calendarView').classList.toggle('hidden', v !== 'calendar');
+        document.getElementById('sellerFilterGroup').classList.toggle('hidden', v !== 'seller');
+        document.getElementById('searchArea').classList.toggle('hidden', v === 'stats' || v === 'calendar');
+        
+        // 캘린더 뷰 전환 시 선택된 날짜 이벤트 리스트 닫기
+        if (v === 'calendar') {
+            closeSelectedDateEvents();
+        }
+        
+        renderAll();
+    }
+
     function setSellerFilter(f) {
         sellerFilter = f;
-        const all = document.getElementById('filterAll');
-        const has = document.getElementById('filterHas');
-        const no = document.getElementById('filterNo');
-
-        all.className = `px-3 py-2 text-[11px] font-bold rounded-lg transition-all ${f==='all' ? 'active-filter-btn text-white' : 'text-slate-500 hover:bg-white'}`;
-        has.className = `px-3 py-2 text-[11px] font-bold rounded-lg transition-all ${f==='hasProduct' ? 'active-filter-btn text-white' : 'text-slate-500 hover:bg-white'}`;
-        no.className  = `px-3 py-2 text-[11px] font-bold rounded-lg transition-all ${f==='noProduct' ? 'active-filter-btn text-white' : 'text-slate-500 hover:bg-white'}`;
+        ['All', 'Has', 'No'].forEach(k => {
+            const btn = document.getElementById('filter' + k);
+            const active = (f === 'all' && k === 'All') || (f === 'hasProduct' && k === 'Has') || (f === 'noProduct' && k === 'No');
+            btn.classList.toggle('active-filter-btn', active);
+            btn.classList.toggle('text-white', active);
+            btn.classList.toggle('text-slate-500', !active);
+        });
         renderAll();
     }
 
-    function setStatsMode(mode) {
-        statsMode = mode;
-        const sBtn = document.getElementById('statsModeSeller');
-        const pBtn = document.getElementById('statsModeProduct');
-        sBtn.className = `px-3 py-2 text-[11px] font-bold rounded-lg transition-all ${mode==='seller' ? 'active-filter-btn text-white' : 'text-slate-500 hover:bg-white'}`;
-        pBtn.className = `px-3 py-2 text-[11px] font-bold rounded-lg transition-all ${mode==='product' ? 'active-filter-btn text-white' : 'text-slate-500 hover:bg-white'}`;
-        renderAll();
-    }
-
-    function switchView(view) {
-        currentView = view;
-
-        document.getElementById('viewSellerBtn').classList.toggle('active-view-btn', view === 'seller');
-        document.getElementById('viewProductBtn').classList.toggle('active-view-btn', view === 'product');
-        document.getElementById('viewStatsBtn').classList.toggle('active-view-btn', view === 'stats');
-
-        document.getElementById('viewSellerBtn').classList.toggle('text-slate-500', view !== 'seller');
-        document.getElementById('viewProductBtn').classList.toggle('text-slate-500', view !== 'product');
-        document.getElementById('viewStatsBtn').classList.toggle('text-slate-500', view !== 'stats');
-
-        document.getElementById('mainGrid').classList.toggle('hidden', view === 'stats');
-        document.getElementById('statsView').classList.toggle('hidden', view !== 'stats');
-
-        document.getElementById('sellerFilterGroup').style.display = (view === 'seller') ? 'flex' : 'none';
-        document.getElementById('searchArea').style.display = (view === 'stats') ? 'none' : 'block';
-
-        renderAll();
-    }
-
-    function renderAll() {
-        renderMain();
+    function setStatsMode(m) {
+        statsMode = m;
+        document.getElementById('statsModeSeller').classList.toggle('active-filter-btn', m === 'seller');
+        document.getElementById('statsModeSeller').classList.toggle('text-white', m === 'seller');
+        document.getElementById('statsModeSeller').classList.toggle('text-slate-500', m !== 'seller');
+        document.getElementById('statsModeProduct').classList.toggle('active-filter-btn', m === 'product');
+        document.getElementById('statsModeProduct').classList.toggle('text-white', m === 'product');
+        document.getElementById('statsModeProduct').classList.toggle('text-slate-500', m !== 'product');
         renderStats();
-        // modal open => refresh its contents immediately on period change
-        if (!document.getElementById('modal').classList.contains('hidden')) {
-            refreshSellerModalOnPeriodChange();
-        }
-        if (!document.getElementById('productModal').classList.contains('hidden')) {
-            renderProductModal();
-        }
     }
 
     // -------------------------
-    // Main render
+    // Render all
     // -------------------------
-    function createCard(title, items, type, salesVal = 0, salesLabel = '실적') {
-        const div = document.createElement('div');
-        const color = type === 'SELLER' ? 'blue' : 'emerald';
-        div.className = "card-animate bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 hover:shadow-xl hover:border-blue-300 transition-all cursor-pointer group";
+    function renderAll() {
+        if (currentView === 'stats') {
+            renderStats();
+        } else if (currentView === 'calendar') {
+            renderCalendar();
+        } else {
+            renderGrid();
+        }
+        if (currentTarget) refreshSellerModalOnPeriodChange();
+        if (currentProductTarget) openProductModal(currentProductTarget);
+    }
 
+    // -------------------------
+    // Calendar Functions
+    // -------------------------
+    function renderCalendar() {
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = '';
+
+        // Get first and last day of month
+        const firstDay = new Date(calendarYear, calendarMonth, 1);
+        const lastDay = new Date(calendarYear, calendarMonth + 1, 0);
+        const startDayOfWeek = firstDay.getDay();
+        const daysInMonth = lastDay.getDate();
+
+        // Get events for this month
+        const monthEvents = getEventsForMonth(calendarYear, calendarMonth);
+
+        // Previous month days
+        const prevMonth = new Date(calendarYear, calendarMonth, 0);
+        const prevMonthDays = prevMonth.getDate();
+        for (let i = startDayOfWeek - 1; i >= 0; i--) {
+            const day = prevMonthDays - i;
+            const cell = createCalendarCell(day, true, [], calendarYear, calendarMonth - 1);
+            grid.appendChild(cell);
+        }
+
+        // Current month days
+        const today = new Date();
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayEvents = monthEvents[dateStr] || [];
+            const isToday = today.getFullYear() === calendarYear && today.getMonth() === calendarMonth && today.getDate() === day;
+            const cell = createCalendarCell(day, false, dayEvents, calendarYear, calendarMonth, isToday, dateStr);
+            grid.appendChild(cell);
+        }
+
+        // Next month days
+        const totalCells = Math.ceil((startDayOfWeek + daysInMonth) / 7) * 7;
+        const remainingCells = totalCells - (startDayOfWeek + daysInMonth);
+        for (let day = 1; day <= remainingCells; day++) {
+            const cell = createCalendarCell(day, true, [], calendarYear, calendarMonth + 1);
+            grid.appendChild(cell);
+        }
+
+        // DOM 렌더링 후
+        requestAnimationFrame(() => {
+            renderCalendarEvents();
+            makeEventsDraggable();   // ← 추가
+            setupDropZones();        // ← 추가
+        });
+    }
+
+    function createCalendarCell(day, isOtherMonth, events, year, month, isToday = false, dateStr = '') {
+        const cell = document.createElement('div');
+        let classes = 'calendar-day';
+        if (isOtherMonth) classes += ' other-month';
+        if (isToday) classes += ' today';
+        if (events.length > 0 && !isOtherMonth) classes += ' has-events';
+        cell.className = classes;
+        cell.setAttribute('data-date', dateStr);
+        cell.setAttribute('data-events', JSON.stringify(events));
+
+        const dayNum = document.createElement('div');
+        dayNum.className = `calendar-day-num font-bold flex-shrink-0 ${isToday ? 'text-blue-600' : isOtherMonth ? 'text-slate-300' : 'text-slate-700'}`;
+        dayNum.textContent = day;
+        cell.appendChild(dayNum);
+
+        // Events container - 이벤트는 나중에 동적으로 채움
+        const eventsContainer = document.createElement('div');
+        eventsContainer.className = 'calendar-events-container';
+        cell.appendChild(eventsContainer);
+
+        if (!isOtherMonth && dateStr) {
+            cell.onclick = (e) => {
+                if (e.target.closest('.calendar-event') || e.target.closest('.calendar-more-btn')) return;
+                if (events.length > 0) {
+                    showSelectedDateEvents(dateStr, events);
+                }
+            };
+            cell.style.cursor = events.length > 0 ? 'pointer' : 'default';
+        }
+
+        return cell;
+    }
+
+    // 셀 높이에 따라 이벤트 개수 동적 계산 및 렌더링
+    function renderCalendarEvents() {
+        const cells = document.querySelectorAll('.calendar-day:not(.other-month)');
+        
+        cells.forEach(cell => {
+            const eventsContainer = cell.querySelector('.calendar-events-container');
+            if (!eventsContainer) return;
+            
+            const dateStr = cell.getAttribute('data-date');
+            let events = [];
+            try {
+                events = JSON.parse(cell.getAttribute('data-events') || '[]');
+            } catch(e) { events = []; }
+            
+            if (!events.length) return;
+            
+            eventsContainer.innerHTML = '';
+            
+            const containerHeight = eventsContainer.clientHeight;
+            
+            // 테스트용 이벤트를 하나 만들어서 실제 높이 측정
+            const testEl = document.createElement('div');
+            testEl.className = 'calendar-event';
+            testEl.textContent = 'test';
+            testEl.style.visibility = 'hidden';
+            eventsContainer.appendChild(testEl);
+            const actualLineHeight = testEl.offsetHeight + 1; // gap 포함
+            eventsContainer.removeChild(testEl);
+            
+            // 컨테이너에 들어갈 수 있는 총 줄 수
+            const totalSlots = Math.floor(containerHeight / actualLineHeight);
+            
+            let visibleCount;
+            let showMoreButton;
+            
+            if (events.length <= totalSlots) {
+                // 모든 이벤트가 들어감 - 더보기 불필요
+                visibleCount = events.length;
+                showMoreButton = false;
+            } else {
+                // 이벤트가 더 많음 - 마지막 1줄은 더보기용
+                visibleCount = Math.max(1, totalSlots - 1);
+                showMoreButton = true;
+            }
+            
+            // 이벤트 표시
+            for (let i = 0; i < visibleCount; i++) {
+                const event = events[i];
+                const eventEl = document.createElement('div');
+                eventEl.className = `calendar-event event-color-${i % 6}`;
+                const revText = Number(event.revenue || 0).toFixed(1) + '억';
+                eventEl.textContent = `${event.seller}-${event.product}-${revText}`;
+                eventEl.title = `셀러: ${event.seller}\n상품: ${event.product}\n매출: ${Number(event.revenue || 0).toFixed(2)}억`;
+                eventEl.setAttribute('data-log-id', event.id);  // 수정: log id 속성 추가
+                eventEl.onclick = (e) => {
+                    e.stopPropagation();
+                    syncCalendarFilterToHeader();
+                    openSellerModal(event.seller);
+                };
+                eventsContainer.appendChild(eventEl);
+            }
+
+            // 더보기 버튼
+            if (showMoreButton) {
+                const moreEl = document.createElement('div');
+                moreEl.className = 'calendar-more-btn';
+                moreEl.textContent = `+${events.length - visibleCount}개`;
+                moreEl.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    showSelectedDateEvents(dateStr, events);
+                };
+                eventsContainer.appendChild(moreEl);
+            }
+        });
+    }
+    
+    // 캘린더 월을 상단 필터에 동기화
+    function syncCalendarFilterToHeader() {
+        document.getElementById('filterYear').value = String(calendarYear);
+        document.getElementById('filterMonth').value = String(calendarMonth + 1).padStart(2, '0');
+    }
+
+    function getEventsForMonth(year, month) {
+        const events = {};
+        const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+        
+        salesLogs.forEach(log => {
+            if (log.date && log.date.startsWith(monthStr)) {
+                if (!events[log.date]) events[log.date] = [];
+                events[log.date].push(log);
+            }
+        });
+
+        // Sort events by revenue
+        Object.keys(events).forEach(date => {
+            events[date].sort((a, b) => (b.revenue || 0) - (a.revenue || 0));
+        });
+
+        return events;
+    }
+
+    function navigatePeriod(direction) {
+        calendarMonth += direction;
+        if (calendarMonth < 0) {
+            calendarMonth = 11;
+            calendarYear--;
+        } else if (calendarMonth > 11) {
+            calendarMonth = 0;
+            calendarYear++;
+        }
+        syncCalendarFilterToHeader();
+        closeSelectedDateEvents();
+        renderCalendar();
+    }
+
+    function goToToday() {
+        const today = new Date();
+        calendarYear = today.getFullYear();
+        calendarMonth = today.getMonth();
+        syncCalendarFilterToHeader();
+        closeSelectedDateEvents();
+        renderCalendar();
+    }
+
+    function showSelectedDateEvents(dateStr, events) {
+        selectedCalendarDate = dateStr;
+        const container = document.getElementById('selectedDateEvents');
+        const title = document.getElementById('selectedDateTitle');
+        const list = document.getElementById('selectedDateEventsList');
+
+        const [year, month, day] = dateStr.split('-');
+        title.textContent = `${year}년 ${parseInt(month)}월 ${parseInt(day)}일 일정 (${events.length}건)`;
+
+        list.innerHTML = '';
+        const totalRevenue = events.reduce((sum, e) => sum + (e.revenue || 0), 0);
+
+        // Summary
+        const summary = document.createElement('div');
+        summary.className = 'bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-100 mb-4';
+        summary.innerHTML = `
+            <div class="flex justify-between items-center">
+                <span class="text-sm font-bold text-slate-600">총 매출</span>
+                <span class="text-lg font-black text-blue-600">${totalRevenue.toFixed(2)}억원</span>
+            </div>
+        `;
+        list.appendChild(summary);
+
+        events.forEach((event, idx) => {
+            const item = document.createElement('div');
+            item.className = `flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:shadow-md transition-all cursor-pointer event-color-${idx % 6}`;
+            item.innerHTML = `
+                <div class="flex-1">
+                    <div class="font-black text-sm">${escapeHtml(event.seller)} - ${escapeHtml(event.product)}</div>
+                </div>
+                <div class="text-right">
+                    <div class="font-black text-blue-600">${Number(event.revenue || 0).toFixed(2)}억</div>
+                </div>
+            `;
+            item.onclick = () => {
+                syncCalendarFilterToHeader();
+                openSellerModal(event.seller);
+            };
+            list.appendChild(item);
+        });
+
+        container.classList.remove('hidden');
+    }
+
+    function closeSelectedDateEvents() {
+        document.getElementById('selectedDateEvents').classList.add('hidden');
+        selectedCalendarDate = null;
+    }
+
+    // -------------------------
+    // Drag & Drop 지원 함수들
+    // -------------------------
+
+    function makeEventsDraggable() {
+        document.querySelectorAll('.calendar-event').forEach(el => {
+            el.draggable = true;
+            
+            el.addEventListener('dragstart', (e) => {
+                const eventEl = e.target.closest('.calendar-event');
+                if (!eventEl) return;
+                
+                // 수정: data-log-id 사용
+                const logId = eventEl.getAttribute('data-log-id');
+                const cell = eventEl.closest('.calendar-day');
+                const originalDate = cell.getAttribute('data-date');
+                
+                if (!logId) return;
+                
+                e.dataTransfer.setData('text/plain', JSON.stringify({
+                    logId: parseInt(logId),
+                    originalDate
+                }));
+                
+                // 시각적 피드백
+                eventEl.classList.add('opacity-50');
+            });
+            
+            el.addEventListener('dragend', (e) => {
+                e.target.classList.remove('opacity-50');
+            });
+        });
+    }
+
+    function setupDropZones() {
+        document.querySelectorAll('.calendar-day:not(.other-month)').forEach(cell => {
+            cell.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                cell.classList.add('ring-2', 'ring-blue-400', 'bg-blue-50/30');
+            });
+            
+            cell.addEventListener('dragleave', () => {
+                cell.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50/30');
+            });
+            
+            cell.addEventListener('drop', (e) => {
+                e.preventDefault();
+                cell.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50/30');
+                
+                const data = e.dataTransfer.getData('text/plain');
+                if (!data) return;
+                
+                try {
+                    const { logId, originalDate } = JSON.parse(data);
+                    const newDate = cell.getAttribute('data-date');
+                    
+                    if (newDate === originalDate) return; // 같은 날짜면 무시
+                    
+                    // 실제 데이터 업데이트
+                    const log = salesLogs.find(l => l.id === logId);
+                    if (log) {
+                        log.date = newDate;
+                        
+                        // 날짜순 정렬 유지
+                        salesLogs.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+                        
+                        saveToLocal();           // 저장
+                        renderCalendar();        // 전체 다시 그리기 (안전)
+                    }
+                } catch (err) {
+                    console.error('드롭 처리 오류:', err);
+                }
+            });
+        });
+    }
+
+    // -------------------------
+    // Grid render
+    // -------------------------
+    function createEmptyStateCard(type) {
+        const card = document.createElement('div');
+        card.className = "empty-state-card bg-white rounded-[2rem] p-8 shadow-sm cursor-pointer transition-all col-span-full flex flex-col items-center justify-center min-h-[200px]";
+        card.onclick = () => openNewEntryModal();
+        
+        const icon = type === 'seller' ? '👤' : '📦';
+        const title = type === 'seller' ? '등록된 셀러가 없습니다' : '등록된 상품이 없습니다';
+        const subtitle = '클릭하여 첫 데이터를 추가하세요';
+        
+        card.innerHTML = `
+            <div class="text-5xl mb-4">${icon}</div>
+            <h3 class="text-lg font-black text-slate-400 mb-2">${title}</h3>
+            <p class="text-sm text-slate-400">${subtitle}</p>
+            <button class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all">
+                + 신규 추가
+            </button>
+        `;
+        return card;
+    }
+
+    function createCard(title, items, badge, salesTotal, salesLabel) {
+        const div = document.createElement('div');
+        div.className = "bg-white rounded-[2rem] p-6 shadow-sm cursor-pointer hover:shadow-lg transition-all card-animate border border-slate-100 hover:border-blue-200";
         div.onclick = () => {
-            if (type === 'SELLER') openSellerModal(title);
+            if (badge === 'SELLER') openSellerModal(title);
             else openProductModal(title);
         };
-
-        const chips = items.length > 0
-            ? items.map(i => `<span class="bg-slate-50 text-slate-500 px-2 py-1 rounded-lg text-[9px] font-bold border border-slate-100">${escapeHtml(i)}</span>`).join('')
-            : `<span class="text-slate-300 text-[9px] italic font-medium">${type==='SELLER' ? '연결 상품 없음' : '연결 셀러 없음'}</span>`;
-
         div.innerHTML = `
-            <div class="mb-3 flex justify-between items-center">
-                <span class="text-[9px] font-black text-${color}-500 tracking-widest uppercase">${type}</span>
-                <span class="text-[10px] font-bold text-slate-300 group-hover:text-blue-500 italic uppercase">Manage</span>
+            <span class="text-[9px] font-black uppercase px-2 py-1 rounded-lg ${badge === 'SELLER' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}">${badge}</span>
+            <h3 class="text-lg font-black text-slate-800 mt-3 mb-2 tracking-tight leading-tight">${escapeHtml(title)}</h3>
+            <div class="flex flex-wrap gap-1 mb-3 max-h-20 overflow-hidden">
+                ${items.slice(0, 5).map(i => `<span class="text-[10px] font-medium text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">${escapeHtml(i)}</span>`).join('')}
+                ${items.length > 5 ? `<span class="text-[10px] font-bold text-slate-500">+${items.length - 5}</span>` : ''}
             </div>
-            <h3 class="text-lg font-black text-slate-800 mb-1">${escapeHtml(title)}</h3>
-            <p class="text-xs font-black text-${color}-600 mb-3 bg-${color}-50 inline-block px-2 py-1 rounded-lg">
-                ${escapeHtml(salesLabel)}: ${Number(salesVal || 0).toFixed(2)}억
-            </p>
-            <div class="flex flex-wrap gap-1">${chips}</div>
+            <div class="pt-3 border-t border-slate-100 flex justify-between items-center">
+                <span class="text-[10px] font-bold text-slate-400 uppercase">${salesLabel}</span>
+                <span class="text-sm font-black text-blue-600">${Number(salesTotal || 0).toFixed(2)}억</span>
+            </div>
         `;
         return div;
     }
 
-    function renderMain() {
+    function renderGrid() {
         const grid = document.getElementById('mainGrid');
-        if (!grid) return;
         grid.innerHTML = "";
-
-        if (currentView === 'stats') return;
-
-        const search = (document.getElementById('globalSearch').value || '').toLowerCase();
         const { label } = getPeriod();
-        const salesLabel = (label === '전체') ? '누적 실적' : `${label} 실적`;
+        const salesLabel = (label === '전체') ? '총 매출' : `${label} 매출`;
+        const search = (document.getElementById('globalSearch').value || '').toLowerCase();
+        let hasVisibleCards = false;
 
         if (currentView === 'seller') {
-            const sellers = (rawData || []).slice().sort((a,b)=>koreanSort(a.name,b.name));
+            rawData.forEach(s => {
+                const logs = filterLogsByPeriod(salesLogs.filter(l => l.seller === s.name));
+                const productsInPeriod = uniqueSorted(logs.map(l => l.product));
+                const hasProd = productsInPeriod.length > 0;
 
-            sellers.forEach(s => {
-                const sellerLogs = filterLogsByPeriod(salesLogs.filter(l => l.seller === s.name));
-                const productsInPeriod = uniqueSorted(sellerLogs.map(l => l.product));
-                const targetSales = sellerLogs.reduce((sum, l) => sum + Number(l.revenue || 0), 0);
+                if (sellerFilter === 'hasProduct' && !hasProd) return;
+                if (sellerFilter === 'noProduct' && hasProd) return;
 
-                const hasProductInPeriod = productsInPeriod.length > 0;
-
-                // search (seller name OR master products OR period products)
-                const masterProducts = uniqueSorted((s.products || []));
+                const sales = logs.reduce((sum, l) => sum + Number(l.revenue || 0), 0);
                 const matchesSearch =
                     (s.name || '').toLowerCase().includes(search) ||
-                    masterProducts.some(p => (p || '').toLowerCase().includes(search)) ||
                     productsInPeriod.some(p => (p || '').toLowerCase().includes(search));
 
-                let matchesFilter = true;
-                if (sellerFilter === 'hasProduct') matchesFilter = hasProductInPeriod;
-                if (sellerFilter === 'noProduct') matchesFilter = !hasProductInPeriod;
+                if (!matchesSearch) return;
 
-                if (!matchesSearch || !matchesFilter) return;
-
-                grid.appendChild(createCard(s.name, productsInPeriod, 'SELLER', targetSales, salesLabel));
+                hasVisibleCards = true;
+                grid.appendChild(createCard(s.name, productsInPeriod, 'SELLER', sales, salesLabel));
             });
 
-            if (!grid.children.length) {
-                grid.innerHTML = "<div class='text-center py-12 text-slate-300 font-black uppercase col-span-full'>No Sellers</div>";
+            if (!hasVisibleCards) {
+                if (search) {
+                    grid.innerHTML = `<div class='text-center py-12 text-slate-300 font-black uppercase col-span-full'>검색 결과 없음</div>`;
+                } else {
+                    grid.appendChild(createEmptyStateCard('seller'));
+                }
             }
-            return;
-        }
+        } else if (currentView === 'product') {
+            const productMap = new Map();
+            rawData.forEach(s => (s.products || []).forEach(p => { if (!productMap.has(p)) productMap.set(p, []); }));
+            salesLogs.forEach(l => { if (l.product && !productMap.has(l.product)) productMap.set(l.product, []); });
 
-        if (currentView === 'product') {
-            // master products set (so card exists even with 0 sales), but sellers list derived from period logs to prevent phantom chips
-            const master = new Set();
-            rawData.forEach(s => (s.products || []).forEach(p => master.add(p)));
-            salesLogs.forEach(l => { if (l.product) master.add(l.product); });
-
-            const products = Array.from(master).filter(Boolean).sort(koreanSort);
-
-            products.forEach(p => {
+            [...productMap.keys()].sort(koreanSort).forEach(p => {
                 const logs = filterLogsByPeriod(salesLogs.filter(l => l.product === p));
                 const sales = logs.reduce((sum, l) => sum + Number(l.revenue || 0), 0);
                 const sellersInPeriod = uniqueSorted(logs.map(l => l.seller));
@@ -414,11 +1233,16 @@
 
                 if (!matchesSearch) return;
 
+                hasVisibleCards = true;
                 grid.appendChild(createCard(p, sellersInPeriod, 'PRODUCT', sales, salesLabel));
             });
 
-            if (!grid.children.length) {
-                grid.innerHTML = "<div class='text-center py-12 text-slate-300 font-black uppercase col-span-full'>No Products</div>";
+            if (!hasVisibleCards) {
+                if (search) {
+                    grid.innerHTML = `<div class='text-center py-12 text-slate-300 font-black uppercase col-span-full'>검색 결과 없음</div>`;
+                } else {
+                    grid.appendChild(createEmptyStateCard('product'));
+                }
             }
         }
     }
@@ -448,7 +1272,13 @@
         container.innerHTML = "";
 
         if (!sorted.length) {
-            container.innerHTML = "<div class='text-center py-12 text-slate-300 font-black uppercase'>No Data</div>";
+            container.innerHTML = `
+                <div class='text-center py-12'>
+                    <div class="text-slate-300 font-black uppercase mb-4">No Data</div>
+                    <button onclick="openNewEntryModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all">
+                        + 데이터 추가하기
+                    </button>
+                </div>`;
             return;
         }
 
@@ -471,6 +1301,87 @@
             `;
             container.appendChild(row);
         });
+    }
+
+    // -------------------------
+    // 신규 데이터 입력 모달
+    // -------------------------
+    function openNewEntryModal() {
+        updateNewEntryDataLists();
+        document.getElementById('newSellerName').value = '';
+        document.getElementById('newProductName').value = '';
+        document.getElementById('newEventDate').value = '';
+        document.getElementById('newRevenue').value = '';
+        document.getElementById('newEntryModal').classList.remove('hidden');
+        setTimeout(() => { document.getElementById('newSellerName').focus(); }, 100);
+    }
+
+    function closeNewEntryModal() {
+        document.getElementById('newEntryModal').classList.add('hidden');
+    }
+
+    function updateNewEntryDataLists() {
+        const sellersList = document.getElementById('existingSellersList');
+        sellersList.innerHTML = '';
+        const sellers = uniqueSorted(rawData.map(s => s.name));
+        sellers.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            sellersList.appendChild(opt);
+        });
+
+        const productsList = document.getElementById('existingProductsList');
+        productsList.innerHTML = '';
+        const products = getGlobalMasterProducts();
+        products.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            productsList.appendChild(opt);
+        });
+    }
+
+    function submitNewEntry() {
+        const sellerName = (document.getElementById('newSellerName').value || '').trim();
+        const productName = (document.getElementById('newProductName').value || '').trim();
+        const eventDate = document.getElementById('newEventDate').value || '';
+        const revenueVal = document.getElementById('newRevenue').value;
+        const revenue = revenueVal ? Number(revenueVal) : null;
+
+        if (!sellerName) {
+            alert('셀러명을 입력해주세요.');
+            document.getElementById('newSellerName').focus();
+            return;
+        }
+
+        let seller = rawData.find(s => s.name === sellerName);
+        if (!seller) {
+            seller = { name: sellerName, products: [] };
+            rawData.push(seller);
+            rawData.sort((a, b) => koreanSort(a.name, b.name));
+        }
+
+        if (productName) {
+            if (!seller.products.includes(productName)) {
+                seller.products.push(productName);
+                seller.products = uniqueSorted(seller.products);
+            }
+
+            if (eventDate || revenue !== null) {
+                salesLogs.push({
+                    id: Date.now(),
+                    seller: sellerName,
+                    product: productName,
+                    date: eventDate,
+                    revenue: revenue !== null ? revenue : 0
+                });
+                salesLogs.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+            }
+        }
+
+        saveToLocal();
+        closeNewEntryModal();
+        renderAll();
+        console.log('[신규 추가]', productName ? `"${sellerName}" 셀러와 "${productName}" 상품이 추가되었습니다.` : `"${sellerName}" 셀러가 추가되었습니다.`);
     }
 
     // -------------------------
@@ -497,8 +1408,8 @@
         document.getElementById('modalTitle').innerText = sellerName;
         document.getElementById('modal').classList.remove('hidden');
 
-        updateLogProductDropdownMaster(); // always master list
-        resetLogFields();                 // clear inputs
+        updateLogProductDropdownMaster();
+        resetLogFields();
         renderModalItemsPeriod();
         renderLogHistoryPeriod();
 
@@ -513,7 +1424,6 @@
     }
 
     function refreshSellerModalOnPeriodChange() {
-        // If selected log is out of current period -> deselect and reset
         if (editingLogId) {
             const log = salesLogs.find(l => l.id === editingLogId);
             const visibleIds = new Set(filterLogsByPeriod(salesLogs.filter(l => l.seller === currentTarget)).map(l => l.id));
@@ -527,7 +1437,6 @@
         renderLogHistoryPeriod();
     }
 
-    // 행사상품 탭: 해당 기간 로그에 존재하는 상품만
     function renderModalItemsPeriod() {
         const listEl = document.getElementById('modalItemList');
         listEl.innerHTML = "";
@@ -562,18 +1471,12 @@
             `;
 
             chip.onclick = () => {
-                // 요구사항: 행사상품 클릭 -> 일정/매출 기록 탭 아래(로그 리스트)에서 해당 상품 항목 테두리 토글 ON
                 switchTab('log');
-
-                // dropdown은 항상 마스터지만, 편의를 위해 상품 선택은 해당 상품으로 맞춤
                 document.getElementById('logProduct').value = p;
-
-                // 가장 최근 로그(해당 기간) 선택 + 폼 채움 + 파란 테두리 ON
                 const latest = pLogs.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
                 if (latest) {
                     selectLog(latest, { fromRelClick: true });
                 } else {
-                    // 혹시나 없는 경우: 신규 입력 준비
                     editingLogId = null;
                     resetLogFields({ keepProduct: true });
                     renderLogHistoryPeriod();
@@ -584,7 +1487,6 @@
         });
     }
 
-
     function getGlobalMasterProducts() {
         const set = new Set();
         (rawData || []).forEach(s => (s.products || []).forEach(p => { if (p) set.add(p); }));
@@ -592,28 +1494,44 @@
         return uniqueSorted(Array.from(set));
     }
 
-    // 일정/매출 기록 탭: 상품 dropdown은 항상 마스터 목록
     function updateLogProductDropdownMaster() {
-        const select = document.getElementById('logProduct');
-        if (!select) return;
+        const input = document.getElementById('logProduct');
+        const datalist = document.getElementById('logProductList');
+        if (!input || !datalist) return;
 
-        const currentValue = select.value || "";
-        select.innerHTML = "<option value=''>상품 선택</option>";
+        const currentValue = input.value || "";
+        datalist.innerHTML = "";
 
-        // ✅ 요구사항: 신규 입력을 위해 항상 '전체 상품(마스터)'을 표시
-        // 마스터(전체 상품) = (모든 셀러의 연결 상품) ∪ (전체 로그에 등장한 상품)
         const products = getGlobalMasterProducts();
         products.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p;
-            opt.textContent = p;
-            select.appendChild(opt);
+            datalist.appendChild(opt);
         });
 
-        // 가능한 경우 기존 선택 유지
-        if (currentValue && products.includes(currentValue)) select.value = currentValue;
+        input.value = currentValue;
     }
 
+    let savedProductValue = '';
+    function showProductList() {
+        const input = document.getElementById('logProduct');
+        if (!input) return;
+        
+        savedProductValue = input.value;
+        input.value = '';
+        input.focus();
+        
+        const restoreHandler = () => {
+            if (input.value === '') {
+                input.value = savedProductValue;
+            }
+            input.removeEventListener('blur', restoreHandler);
+        };
+        
+        setTimeout(() => {
+            input.addEventListener('blur', restoreHandler);
+        }, 100);
+    }
 
     function renderLogHistoryPeriod() {
         const container = document.getElementById('logHistoryList');
@@ -637,9 +1555,8 @@
             div.onclick = (e) => {
                 if (e.target.closest('button')) return;
                 if (editingLogId === l.id) {
-                    // toggle off
                     editingLogId = null;
-                    resetLogFields(); // 완전 초기화
+                    resetLogFields();
                     renderLogHistoryPeriod();
                 } else {
                     selectLog(l);
@@ -664,88 +1581,62 @@
     }
 
     function selectLog(log, opts = {}) {
-        // 선택 ON
         editingLogId = log.id;
-
-        document.getElementById('logDate').value = log.date || "";
-        document.getElementById('logProduct').value = log.product || "";
-        document.getElementById('logRevenue').value = (log.revenue !== null && log.revenue !== undefined) ? Number(log.revenue).toFixed(2) : "";
-
-        const btn = document.getElementById('submitLogBtn');
-        btn.innerText = "기록 수정";
-        btn.className = "w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-md";
-
+        document.getElementById('logDate').value = log.date || '';
+        document.getElementById('logProduct').value = log.product || '';
+        document.getElementById('logRevenue').value = log.revenue ?? '';
+        document.getElementById('submitLogBtn').innerText = '기록 수정';
         renderLogHistoryPeriod();
     }
 
     function resetLogFields(opts = {}) {
-        const keepProduct = !!opts.keepProduct;
-        const productVal = keepProduct ? (document.getElementById('logProduct').value || "") : "";
-
-        document.getElementById('logDate').value = "";
-        document.getElementById('logRevenue').value = "";
-        document.getElementById('logProduct').value = productVal;
-
-        const btn = document.getElementById('submitLogBtn');
-        btn.innerText = "기록 추가/수정";
-        btn.className = "w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-sm";
+        document.getElementById('logDate').value = '';
+        if (!opts.keepProduct) document.getElementById('logProduct').value = '';
+        document.getElementById('logRevenue').value = '';
+        document.getElementById('submitLogBtn').innerText = '기록 추가/수정';
     }
 
     function submitLog() {
-        if (!currentTarget) return;
+        const date = document.getElementById('logDate').value;
+        const product = (document.getElementById('logProduct').value || '').trim();
+        const rev = parseFloat(document.getElementById('logRevenue').value) || 0;
 
-        const date = document.getElementById('logDate').value || "";
-        const product = document.getElementById('logProduct').value || "";
-        const revenue = Number(document.getElementById('logRevenue').value || 0);
+        if (!product) { alert('상품을 입력하세요.'); return; }
 
-        if (!product) return alert("상품 선택 필요");
-
-        // ✅ 신규 입력 시: 선택된 상품을 해당 셀러의 '연결 상품(마스터)'에 자동 반영
-        const sellerObj = getCurrentSeller();
-        if (sellerObj) {
-            sellerObj.products = Array.isArray(sellerObj.products) ? sellerObj.products : [];
-            if (product && !sellerObj.products.includes(product)) {
-                sellerObj.products.push(product);
-                sellerObj.products = uniqueSorted(sellerObj.products);
-            }
+        const seller = getCurrentSeller();
+        if (seller && !seller.products.includes(product)) {
+            seller.products.push(product);
+            seller.products = uniqueSorted(seller.products);
         }
-
 
         if (editingLogId) {
-            const idx = salesLogs.findIndex(l => l.id === editingLogId);
-            if (idx !== -1) {
-                salesLogs[idx] = { ...salesLogs[idx], date, product, revenue };
+            const log = salesLogs.find(l => l.id === editingLogId);
+            if (log) {
+                log.date = date;
+                log.product = product;
+                log.revenue = rev;
             }
-            editingLogId = null;
         } else {
-            salesLogs.push({ id: Date.now(), seller: currentTarget, product, date, revenue });
+            salesLogs.push({ id: Date.now(), seller: currentTarget, product, date, revenue: rev });
         }
+        salesLogs.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-        salesLogs.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+        editingLogId = null;
         saveToLocal();
-
-        // 신규 입력 준비: 날짜/매출만 비우고 상품 선택은 유지
-        resetLogFields({ keepProduct: true });
-
+        resetLogFields();
         renderModalItemsPeriod();
         renderLogHistoryPeriod();
-        renderMain(); // refresh cards
-        if (currentView === 'stats') renderStats();
+        renderAll();
     }
 
     function deleteLog(id) {
-        if (!confirm("기록을 삭제합니까?")) return;
+        if (!confirm('이 기록을 삭제하시겠습니까?')) return;
         salesLogs = salesLogs.filter(l => l.id !== id);
-        if (editingLogId === id) {
-            editingLogId = null;
-            resetLogFields();
-        }
+        if (editingLogId === id) { editingLogId = null; resetLogFields(); }
         saveToLocal();
         renderModalItemsPeriod();
         renderLogHistoryPeriod();
-        renderMain();
-        if (currentView === 'stats') renderStats();
-        if (!document.getElementById('productModal').classList.contains('hidden')) renderProductModal();
+        renderAll();
     }
 
     // -------------------------
@@ -753,158 +1644,96 @@
     // -------------------------
     function openProductModal(productName) {
         currentProductTarget = productName;
-        renderProductModal();
+        document.getElementById('productModalTitle').innerText = productName;
         document.getElementById('productModal').classList.remove('hidden');
-    }
-    function closeProductModal() {
-        document.getElementById('productModal').classList.add('hidden');
-        currentProductTarget = '';
-    }
-
-    function renderProductModal() {
-        const productName = currentProductTarget;
-        if (!productName) return;
 
         const { label } = getPeriod();
-        document.getElementById('productModalTitle').innerText = productName;
-        document.getElementById('productModalSubtitle').innerText = (label === '전체') ? '전체 기간 기준' : `${label} 기준`;
+        document.getElementById('productModalSubtitle').innerText = (label === '전체') ? '전체 기간 집계' : `${label} 집계`;
 
         const logs = filterLogsByPeriod(salesLogs.filter(l => l.product === productName));
+        const sellerAgg = {};
+        logs.forEach(l => { sellerAgg[l.seller] = (sellerAgg[l.seller] || 0) + Number(l.revenue || 0); });
+        const sorted = Object.entries(sellerAgg).sort((a, b) => b[1] - a[1]);
 
-        const agg = {};
-        logs.forEach(l => {
-            if (!l.seller) return;
-            agg[l.seller] = (agg[l.seller] || 0) + Number(l.revenue || 0);
-        });
-
-        const sorted = Object.entries(agg).sort((a,b)=>b[1]-a[1]);
-        const total = sorted.reduce((s, [,v]) => s + Number(v||0), 0);
-        document.getElementById('productSellerTotal').innerText = `합계 ${total.toFixed(2)}억`;
+        const total = sorted.reduce((s, [, v]) => s + v, 0);
+        document.getElementById('productSellerTotal').innerText = `총 ${total.toFixed(2)}억원`;
 
         const list = document.getElementById('productSellerList');
         list.innerHTML = "";
-
         if (!sorted.length) {
             list.innerHTML = "<div class='text-center py-10 text-slate-300 font-black uppercase'>No Data</div>";
             return;
         }
 
-        sorted.forEach(([seller, v]) => {
+        sorted.forEach(([seller, rev], idx) => {
+            const percent = total > 0 ? (rev / total * 100).toFixed(1) : '0.0';
             const row = document.createElement('div');
-            row.className = "flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-white shadow-sm";
-            row.innerHTML = `<span class="text-xs font-black text-slate-700">${escapeHtml(seller)}</span><span class="text-xs font-black text-emerald-600">${Number(v||0).toFixed(2)}억</span>`;
+            row.className = "flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-all cursor-pointer";
+            row.onclick = () => { closeProductModal(); openSellerModal(seller); };
+            row.innerHTML = `
+                <div class="w-6 h-6 flex items-center justify-center bg-emerald-600 rounded-full text-[9px] font-black text-white">${idx + 1}</div>
+                <div class="flex-1">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-bold text-slate-700">${escapeHtml(seller)}</span>
+                        <span class="text-xs font-bold text-emerald-600">${rev.toFixed(2)}억</span>
+                    </div>
+                    <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-emerald-500 h-full" style="width: ${percent}%;"></div>
+                    </div>
+                </div>
+                <div class="text-[10px] font-black text-slate-400 w-10 text-right">${percent}%</div>
+            `;
             list.appendChild(row);
         });
     }
 
+    function closeProductModal() {
+        document.getElementById('productModal').classList.add('hidden');
+        currentProductTarget = '';
+    }
+
     // -------------------------
-    // Excel import/export (rev5 compatible)
+    // Excel export / import
     // -------------------------
-	function exportToExcel() {
-		// Export columns: 셀러명, 상품명, 행사일, 매출액(억원)
-		// Sorting priority:
-		//  1) 상품 유무(상품 없는 셀러는 맨 아래)
-		//  2) 셀러명(가나다순)
-		//  3) 행사일(오름차순)
-		//  (tie-breakers) 상품명(가나다순) -> 매출액(오름차순)
-
-		const header = ["셀러명", "상품명", "행사일", "매출액(억원)"];
-
-		// Seller -> has any product?
-		const sellerHasProduct = new Map();
-
-		// from rawData 연결상품
-		(rawData || []).forEach(s => {
-			const has = Array.isArray(s.products) && s.products.length > 0;
-			sellerHasProduct.set(s.name, has);
-		});
-
-		// from logs (연결상품 배열이 비어도 로그가 있으면 "상품 있음" 처리)
-		(salesLogs || []).forEach(l => {
-			if (!l || !l.seller) return;
-			const prev = sellerHasProduct.get(l.seller);
-			if (prev === undefined) sellerHasProduct.set(l.seller, !!l.product);
-			else if (!prev && l.product) sellerHasProduct.set(l.seller, true);
-		});
-
-		// Build export rows
-		const rows = [];
-
-		// 1) logs
-		(salesLogs || []).forEach(l => {
-			rows.push({
-				seller: l.seller || "",
-				product: l.product || "",
-				date: l.date || "",
-				revenue: (l.revenue === null || l.revenue === undefined) ? "" : l.revenue
-			});
-		});
-
-		// 2) connections w/o logs + sellers with no products
-		(rawData || []).forEach(s => {
-			const sellerName = s.name || "";
-			const products = Array.isArray(s.products) ? s.products : [];
-
-			if (!products.length) {
-				// seller row even without products
-				rows.push({ seller: sellerName, product: "", date: "", revenue: "" });
-				return;
-			}
-
-			products.forEach(p => {
-				const has = (salesLogs || []).some(l => l && l.seller === sellerName && l.product === p);
-				if (!has) rows.push({ seller: sellerName, product: p || "", date: "", revenue: "" });
-			});
-		});
-
-		// Sort rows with required priority
-		rows.sort((a, b) => {
-			const aHas = sellerHasProduct.get(a.seller) ? 1 : 0;
-			const bHas = sellerHasProduct.get(b.seller) ? 1 : 0;
-			if (aHas !== bHas) return bHas - aHas; // 상품 있음 먼저
-
-			const sCmp = (a.seller || "").localeCompare((b.seller || ""), "ko");
-			if (sCmp !== 0) return sCmp;
-
-			const aDate = (a.date || "").trim() ? a.date.trim().slice(0, 10) : "9999-12-31";
-			const bDate = (b.date || "").trim() ? b.date.trim().slice(0, 10) : "9999-12-31";
-			if (aDate !== bDate) return aDate.localeCompare(bDate);
-
-			const pCmp = (a.product || "").localeCompare((b.product || ""), "ko");
-			if (pCmp !== 0) return pCmp;
-
-			const ar = (a.revenue === "" ? Number.POSITIVE_INFINITY : Number(a.revenue));
-			const br = (b.revenue === "" ? Number.POSITIVE_INFINITY : Number(b.revenue));
-			return ar - br;
-		});
-
-		const excelData = [header, ...rows.map(r => [r.seller, r.product, r.date, r.revenue])];
-
-		const wb = XLSX.utils.book_new();
-		const ws = XLSX.utils.aoa_to_sheet(excelData);
-		XLSX.utils.book_append_sheet(wb, ws, "매출현황");
-		XLSX.writeFile(wb, `Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
-	}
-
+    function exportToExcel() {
+        const wb = XLSX.utils.book_new();
+        const rows = [];
+        salesLogs.forEach(l => {
+            rows.push({ '셀러명': l.seller, '상품명': l.product, '행사일': l.date, '매출액(억원)': l.revenue });
+        });
+        rawData.forEach(s => {
+            (s.products || []).forEach(p => {
+                if (!rows.some(r => r['셀러명'] === s.name && r['상품명'] === p)) {
+                    rows.push({ '셀러명': s.name, '상품명': p, '행사일': '', '매출액(억원)': '' });
+                }
+            });
+            if (!(s.products || []).length && !rows.some(r => r['셀러명'] === s.name)) {
+                rows.push({ '셀러명': s.name, '상품명': '', '행사일': '', '매출액(억원)': '' });
+            }
+        });
+        rows.sort((a, b) => koreanSort(a['셀러명'], b['셀러명']) || koreanSort(a['상품명'], b['상품명']));
+        const ws = XLSX.utils.json_to_sheet(rows, { header: ['셀러명', '상품명', '행사일', '매출액(억원)'] });
+        XLSX.utils.book_append_sheet(wb, ws, 'Data');
+        XLSX.writeFile(wb, `seller_dashboard_${yymmddLocal()}.xlsx`);
+    }
 
     function triggerImport() { document.getElementById('importFile').click(); }
 
-    function importData(e) {
-        const file = e.target.files?.[0];
+    function importData(event) {
+        const file = event.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = (e) => {
             try {
-                const data = new Uint8Array(event.target.result);
+                const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array', cellDates: true });
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+                const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
                 const sellerMap = new Map();
                 const newLogs = [];
 
-                rows.forEach((row, index) => {
+                json.forEach((row, index) => {
                     const seller = String(row["셀러명"] || row["셀러"] || row["Seller"] || row["seller"] || "").trim();
                     if (!seller) return;
 
@@ -971,22 +1800,34 @@
     // -------------------------
     // Event wiring
     // -------------------------
+    let resizeTimer = null;
     window.onload = () => {
         loadFromLocal();
-
-        // default view
+        loadExcelAutoBackupSetting();
+        updateExcelBackupBtnUI();
         renderAll();
 
-        // period change => refresh everything immediately
         document.getElementById('filterYear').addEventListener('change', renderAll);
         document.getElementById('filterMonth').addEventListener('change', renderAll);
+        
+        // 창 크기 변경 시 캘린더 이벤트 다시 계산
+        window.addEventListener('resize', () => {
+            if (resizeTimer) clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (currentView === 'calendar') {
+                    renderCalendarEvents();
+                }
+            }, 100);
+        });
     };
 
     window.onclick = (e) => {
         const modal = document.getElementById('modal');
         const pmodal = document.getElementById('productModal');
+        const newEntryModal = document.getElementById('newEntryModal');
         if (e.target === modal) closeModal();
         if (e.target === pmodal) closeProductModal();
+        if (e.target === newEntryModal) closeNewEntryModal();
     };
 </script>
 
