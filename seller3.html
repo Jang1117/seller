@@ -474,11 +474,11 @@
         <div class="flex gap-2">
           <button id="printOriPortrait" onclick="setCalendarPrintOrientation('portrait')"
                   class="flex-1 py-3 rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-black text-sm">
-            세로(기본)
+            세로
           </button>
           <button id="printOriLandscape" onclick="setCalendarPrintOrientation('landscape')"
                   class="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-black text-sm hover:bg-slate-50">
-            가로
+            가로(기본)
           </button>
         </div>
 
@@ -662,7 +662,7 @@
   let selectedCalendarDate = null;
 
   // Print state
-  let calendarPrintOrientation = 'portrait'; // 'portrait' | 'landscape'
+  let calendarPrintOrientation = 'landscape'; // 'portrait' | 'landscape'
 
   const koreanSort = (a, b) => (a || '').localeCompare((b || ''), 'ko');
 
