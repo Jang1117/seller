@@ -1,0 +1,1922 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seller Dashboard Pro</title>
+
+  <!-- SheetJS / Tailwind / html2canvas(프린트 캡처) -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;900&display=swap');
+    body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; }
+
+    /* 활성화 버튼 스타일 */
+    .active-view-btn { background-color: #2563eb !important; color: white !important; }
+    .active-filter-btn { background-color: #2563eb !important; color: white !important; }
+    .active-tab { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 900; }
+
+    /* 애니메이션 */
+    .card-animate { animation: fadeInUp 0.3s ease-out forwards; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* 스크롤바 커스텀 */
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+
+    /* 로그 선택 강조(토글) */
+    .selected-log-item {
+      border: 2px solid #2563eb !important;
+      background-color: #eff6ff !important;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    }
+
+    /* 빈 상태 카드 스타일 */
+    .empty-state-card {
+      border: 2px dashed #cbd5e1;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+    .empty-state-card:hover {
+      border-color: #2563eb;
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    }
+
+    /* =========================
+      캘린더 스타일 (한 페이지에 최대한 보이도록 조정)
+    ========================= */
+
+    /* 캘린더 전체 영역이 화면 높이에 맞게 들어오도록 */
+    #calendarView .calendar-shell {
+      /* header/footer 높이는 대략적, 여기서는 main padding까지 고려해서 여유 */
+      min-height: calc(100vh - 150px);
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+    }
+
+    .calendar-day {
+      /* ✅ 화면에 더 많이 보이게: 약간 납작하게 */
+      aspect-ratio: 1 / 0.82;
+      background: white;
+      border-radius: 12px;
+      padding: 2px 4px;
+      transition: all 0.2s;
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .calendar-day:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 5;
+    }
+    .calendar-day.today {
+      border: 2px solid #2563eb;
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    }
+    .calendar-day.other-month {
+      background: #f8fafc;
+      opacity: 0.5;
+    }
+    .calendar-day.has-events {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border-color: #86efac;
+    }
+
+    /* ✅ 수정: 날짜 숫자 영역 고정 - 이벤트와 분리 */
+    .calendar-day-num {
+      font-size: clamp(10px, 1.2vw, 13px);
+      line-height: 1;
+      margin-bottom: 4px;         /* ✅ 날짜와 이벤트 간격 증가 */
+      padding-bottom: 2px;        /* ✅ 추가 간격 */
+      flex-shrink: 0;
+      height: auto;
+      display: block;
+    }
+
+    .calendar-events-container {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;                   /* ✅ gap 약간 증가 */
+      min-height: 0;
+      padding-top: 2px;           /* ✅ 날짜와 간격 추가 */
+    }
+
+    /* ✅ 핵심 수정: 이벤트 텍스트 수직 정렬 완벽 수정 */
+    .calendar-event {
+      font-size: clamp(9px, 0.95vw, 11px);
+      padding: 0 6px;
+      border-radius: 3px;
+      cursor: grab;
+      transition: all 0.15s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 0;
+      
+      /* ✅ flex + 한글 폰트 보정 */
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 16px;
+      height: 16px;
+      box-sizing: border-box;
+      padding-bottom: 2px;        /* ✅ 한글 baseline 보정 - 텍스트 위로 */
+    }
+    .calendar-event:active { cursor: grabbing; }
+    .calendar-event:hover {
+      transform: scale(1.01);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    .calendar-more-btn {
+      font-size: clamp(9px, 1vw, 12px);
+      color: #64748b;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0 4px;
+      padding-bottom: 2px;        /* ✅ 한글 baseline 보정 */
+      border-radius: 3px;
+      background: #f1f5f9;
+      text-align: center;
+      flex-shrink: 0;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .calendar-more-btn:hover {
+      background: #e2e8f0;
+      color: #2563eb;
+    }
+
+    /* ✅ 프린트 캡처용 스타일 (html2canvas용) */
+    .print-capture-mode .calendar-event {
+      padding-bottom: 10px !important;  /* ✅ 캡처 시 한글 보정 */
+    }
+    .print-capture-mode .calendar-more-btn {
+      padding-bottom: 10px !important;  /* ✅ 캡처 시 한글 보정 */
+    }
+
+    .calendar-header-day {
+      text-align: center;
+      font-weight: 900;
+      font-size: 11px;
+      text-transform: uppercase;
+      padding: 8px 0; /* ✅ 헤더 줄임 */
+      color: #64748b;
+    }
+    .calendar-header-day.sun { color: #ef4444; }
+    .calendar-header-day.sat { color: #3b82f6; }
+
+    .event-color-0 { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; }
+    .event-color-1 { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #166534; }
+    .event-color-2 { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e; }
+    .event-color-3 { background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); color: #9d174d; }
+    .event-color-4 { background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); color: #3730a3; }
+    .event-color-5 { background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%); color: #115e59; }
+
+    /* 이벤트 상세 팝업 */
+    .event-tooltip {
+      position: absolute;
+      z-index: 100;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      padding: 16px;
+      min-width: 280px;
+      max-width: 350px;
+      animation: tooltipIn 0.2s ease-out;
+    }
+    @keyframes tooltipIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== 프린트용 컨테이너 (캡처 이미지 출력) ===== */
+    #calendarPrintContainer { display: none; }
+
+    /* ===== 로딩 오버레이 ===== */
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.55);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 900;
+    }
+    #loadingOverlay.active { display: flex; }
+
+    /* ===== 인쇄 CSS - 핵심 수정 ===== */
+    @media print {
+      html, body { height: 100%; margin: 0 !important; }
+      body * { visibility: hidden !important; }
+
+      #calendarPrintContainer, #calendarPrintContainer * {
+        visibility: visible !important;
+      }
+
+      /* ✅ 페이지 중앙 정렬 */
+      #calendarPrintContainer {
+        display: flex !important;
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+
+        align-items: center;      /* 세로 중앙 */
+        justify-content: center;  /* 가로 중앙 */
+      }
+
+      /* ✅ 이미지 contain + 중앙 */
+      #calendarPrintContainer img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        display: block;
+      }
+
+      /* ✅ 프린트 전용 스타일 - 텍스트 정렬 고정 */
+      .calendar-day-num {
+        font-size: 11px !important;
+        height: auto !important;
+        line-height: 1 !important;
+        margin-bottom: 4px !important;
+        padding-bottom: 2px !important;
+      }
+      
+      .calendar-event { 
+        font-size: 10px !important; 
+        min-height: 16px !important; 
+        height: 16px !important;
+        padding: 0 6px !important;
+        padding-bottom: 5px !important;  /* ✅ 프린트용: 더 크게 */
+        display: flex !important;
+        align-items: center !important;
+      }
+      
+      .calendar-more-btn {
+        padding-bottom: 5px !important;  /* ✅ 프린트용: 더 크게 */
+      }
+    }
+  </style>
+</head>
+
+<body class="h-screen flex flex-col overflow-hidden">
+
+  <!-- 헤더 -->
+  <header class="bg-white border-b shadow-sm z-30 px-6 py-3 flex flex-col lg:flex-row items-center justify-between gap-3">
+    <div class="flex items-center gap-3 flex-wrap">
+      <div class="flex items-center mr-2">
+        <img src="logo.jpg" alt="Seller Dashboard Logo" class="h-7 md:h-8 w-auto object-contain" />
+      </div>
+
+      <!-- 기간 필터 -->
+      <div class="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm items-center gap-1">
+        <button onclick="navigatePeriod(-1)" class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-all" title="이전">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+
+        <button id="viewAllBtn" onclick="resetGlobalFilter()" class="px-3 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">전체</button>
+        <div class="w-px h-4 bg-slate-200"></div>
+
+        <select id="filterYear" class="px-2 py-2 text-xs font-bold rounded-lg text-slate-500 bg-slate-50 border border-slate-200 outline-none">
+          <option value="">연도</option>
+          <option value="2026" selected>2026</option>
+          <option value="2027">2027</option>
+          <option value="2028">2028</option>
+        </select>
+
+        <select id="filterMonth" class="px-2 py-2 text-xs font-bold rounded-lg text-slate-500 bg-slate-50 border border-slate-200 outline-none">
+          <option value="">월</option>
+          <option value="01" selected>01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option>
+          <option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option>
+          <option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+        </select>
+
+        <button onclick="navigatePeriod(1)" class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-all" title="다음">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- 뷰 전환 -->
+      <div class="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm items-center gap-1">
+        <button id="viewSellerBtn" onclick="switchView('seller')" class="px-4 py-2 text-xs font-bold rounded-lg active-view-btn">👤 셀러</button>
+        <button id="viewProductBtn" onclick="switchView('product')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">📦 상품</button>
+        <button id="viewCalendarBtn" onclick="switchView('calendar')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">📅 캘린더</button>
+        <button id="viewStatsBtn" onclick="switchView('stats')" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-50 transition-all">📊 요약</button>
+      </div>
+
+      <!-- 셀러 필터 -->
+      <div id="sellerFilterGroup" class="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-sm">
+        <button onclick="setSellerFilter('all')" id="filterAll" class="px-3 py-2 text-[11px] font-bold rounded-lg active-filter-btn text-white">전체</button>
+        <button onclick="setSellerFilter('hasProduct')" id="filterHas" class="px-3 py-2 text-[11px] font-bold rounded-lg text-slate-500">상품 있음</button>
+        <button onclick="setSellerFilter('noProduct')" id="filterNo" class="px-3 py-2 text-[11px] font-bold rounded-lg text-slate-500">상품 없음</button>
+      </div>
+
+      <!-- 신규 추가 -->
+      <button onclick="openNewEntryModal()" class="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        신규 추가
+      </button>
+    </div>
+
+    <!-- 검색/데이터 관리 -->
+    <div class="flex items-center gap-2">
+      <div id="searchArea" class="relative w-40">
+        <input type="text" id="globalSearch" oninput="renderAll()" placeholder="검색."
+               class="w-full pl-8 pr-4 py-2 bg-slate-50 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+        <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </div>
+
+      <button onclick="exportToExcel()" class="bg-emerald-600 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-emerald-700 transition-all">저장</button>
+      <button onclick="triggerImport()" class="bg-slate-700 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-slate-800 transition-all">불러오기</button>
+
+      <!-- ✅ 캘린더 프린트 버튼 -->
+      <button onclick="openCalendarPrintModal()" class="bg-blue-600 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-blue-700 transition-all">
+        캘린더 프린트
+      </button>
+
+      <button onclick="clearAllData()" class="bg-red-50 text-red-600 border border-red-100 px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-red-100">초기화</button>
+      <input type="file" id="importFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="importData(event)">
+    </div>
+  </header>
+
+  <!-- 메인 -->
+  <main id="mainArea" class="flex-1 overflow-y-auto p-5 custom-scrollbar">
+    <div class="max-w-[1500px] mx-auto">
+      <!-- 그리드 뷰 -->
+      <div id="mainGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5"></div>
+
+      <!-- 캘린더 뷰 -->
+      <div id="calendarView" class="hidden space-y-3 animate-in fade-in duration-500 calendar-shell">
+        <div class="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100">
+          <!-- 범례 -->
+          <div class="flex items-center justify-end gap-4 mb-3">
+            <div class="flex items-center gap-2 text-xs">
+              <span class="w-3 h-3 rounded-full bg-gradient-to-r from-green-200 to-green-300"></span>
+              <span class="text-slate-500 font-medium">일정 있음</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+              <span class="text-slate-500 font-medium">오늘</span>
+            </div>
+          </div>
+
+          <!-- 요일 헤더 -->
+          <div class="calendar-grid mb-2">
+            <div class="calendar-header-day sun">일</div>
+            <div class="calendar-header-day">월</div>
+            <div class="calendar-header-day">화</div>
+            <div class="calendar-header-day">수</div>
+            <div class="calendar-header-day">목</div>
+            <div class="calendar-header-day">금</div>
+            <div class="calendar-header-day sat">토</div>
+          </div>
+
+          <!-- 날짜 그리드 -->
+          <div id="calendarGrid" class="calendar-grid"></div>
+        </div>
+
+        <!-- 선택된 날짜 일정 -->
+        <div id="selectedDateEvents" class="hidden bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
+          <div class="flex justify-between items-center mb-4">
+            <h3 id="selectedDateTitle" class="text-lg font-black text-slate-800"></h3>
+            <button onclick="closeSelectedDateEvents()" class="text-slate-400 hover:text-slate-600">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <div id="selectedDateEventsList" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <!-- 통계 뷰 -->
+      <div id="statsView" class="hidden space-y-8 animate-in fade-in duration-500">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+          <div>
+            <h2 class="text-2xl font-black text-slate-800 tracking-tight">월별 매출 요약 리포트</h2>
+            <p id="statsDisplayTitle" class="text-blue-600 font-bold uppercase text-sm mt-1"></p>
+          </div>
+
+          <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-sm">
+            <button id="statsModeSeller" onclick="setStatsMode('seller')" class="px-3 py-2 text-[11px] font-bold rounded-lg active-filter-btn text-white">셀러 기준</button>
+            <button id="statsModeProduct" onclick="setStatsMode('product')" class="px-3 py-2 text-[11px] font-bold rounded-lg text-slate-500">상품 기준</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="md:col-span-1 bg-blue-600 p-8 rounded-[2.5rem] shadow-xl text-white flex flex-col justify-center">
+            <p class="text-blue-100 text-xs font-black uppercase mb-2">Total Revenue</p>
+            <h3 id="totalMonthRevenue" class="text-5xl font-black">0.00 <span class="text-xl font-bold">억원</span></h3>
+          </div>
+          <div class="md:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 pr-2">
+            <div id="statsTableContainer" class="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 푸터 -->
+  <footer class="bg-white border-t py-3 px-8 text-center md:flex md:justify-between items-center z-30">
+    <p class="text-slate-400 text-xs font-medium">© 2026 <span class="font-black text-slate-600 uppercase">Mr. Oasis</span>. All rights reserved. |
+      <a href="mailto:7911171g@gmail.com" style="color: black; font-weight: 600;">✉️ 7911171g@gmail.com</a>
+    </p>
+    <p class="text-slate-400 text-xs font-medium mt-1 md:mt-0">Seller Management System</p>
+  </footer>
+
+  <!-- ===== 프린트 컨테이너 / 오버레이 ===== -->
+  <div id="calendarPrintContainer"></div>
+  <div id="loadingOverlay">
+    <div class="bg-slate-900/50 border border-white/10 px-6 py-4 rounded-2xl shadow-xl">
+      <div class="text-lg font-black mb-1">인쇄 준비 중...</div>
+      <div class="text-sm text-white/80 font-bold">잠시만 기다려주세요</div>
+    </div>
+  </div>
+
+  <!-- ===== 캘린더 프린트 모달 ===== -->
+  <div id="calendarPrintModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden">
+      <div class="p-6 border-b bg-slate-50">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-black text-slate-800">캘린더 프린트</h3>
+          <button onclick="closeCalendarPrintModal()" class="text-slate-400 hover:text-slate-600 font-bold text-2xl">×</button>
+        </div>
+        <p class="text-xs font-bold text-slate-400 mt-2">A4 용지 방향을 선택하세요</p>
+      </div>
+      <div class="p-6 space-y-4">
+        <div class="flex gap-2">
+          <button id="printOriPortrait" onclick="setCalendarPrintOrientation('portrait')"
+                  class="flex-1 py-3 rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-black text-sm">
+            세로(기본)
+          </button>
+          <button id="printOriLandscape" onclick="setCalendarPrintOrientation('landscape')"
+                  class="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-black text-sm hover:bg-slate-50">
+            가로
+          </button>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 text-[11px] text-slate-500 font-bold leading-relaxed">
+          ✅ 인쇄 전 캘린더 레이아웃을 기준으로 행사 표시 개수를 재계산합니다.<br/>
+          ✅ 인쇄 이미지는 용지 중앙에 맞춰 출력됩니다.
+        </div>
+
+        <button onclick="executeCalendarPrint()" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black">
+          프린트 실행
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 신규 입력 모달 / 셀러 모달 / 상품 모달 (원본 그대로) ===== -->
+  <!-- (길이 때문에 UI 부분은 원본 구조 유지: 아래 스크립트에서 동일하게 동작) -->
+
+  <!-- 신규 데이터 입력 모달 -->
+  <div id="newEntryModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-150">
+      <div class="p-8 border-b bg-gradient-to-r from-blue-600 to-indigo-600 relative">
+        <h2 class="text-2xl font-black text-white tracking-tight">신규 데이터 추가</h2>
+        <p class="text-blue-100 text-sm mt-1">셀러와 상품 정보를 입력하세요</p>
+        <button onclick="closeNewEntryModal()" class="absolute top-8 right-8 text-white/70 hover:text-white font-bold text-2xl transition-colors">×</button>
+      </div>
+      <div class="p-8 space-y-5">
+        <div class="flex flex-col gap-2">
+          <label class="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1">
+            셀러명 <span class="text-red-500">*</span>
+            <span class="text-slate-400 font-normal normal-case">(필수)</span>
+          </label>
+          <div class="relative">
+            <input type="text" id="newSellerName" list="existingSellersList"
+                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                   placeholder="셀러명 입력 또는 선택">
+            <datalist id="existingSellersList"></datalist>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1">
+            상품명 <span class="text-slate-400 font-normal normal-case">(선택)</span>
+          </label>
+          <div class="relative">
+            <input type="text" id="newProductName" list="existingProductsList"
+                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                   placeholder="상품명 입력 또는 선택">
+            <datalist id="existingProductsList"></datalist>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1">
+            행사일 <span class="text-slate-400 font-normal normal-case">(선택)</span>
+          </label>
+          <input type="date" id="newEventDate"
+                 class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1">
+            매출액 <span class="text-slate-400 font-normal normal-case">(선택, 억원 단위)</span>
+          </label>
+          <input type="number" id="newRevenue" step="0.01" min="0"
+                 class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                 placeholder="0.00">
+        </div>
+
+        <div class="flex gap-3 pt-4">
+          <button onclick="closeNewEntryModal()" class="flex-1 py-3 px-4 border-2 border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">
+            취소
+          </button>
+          <button onclick="submitNewEntry()" class="flex-1 py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg">
+            추가하기
+          </button>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 mt-2">
+          <p class="text-[11px] text-slate-500 leading-relaxed">
+            <span class="font-bold text-slate-600">💡 TIP:</span>
+            셀러명만 입력하면 셀러만 추가됩니다. 상품명까지 입력하면 셀러-상품 연결이 생성됩니다.
+            행사일/매출까지 입력하면 매출 기록도 함께 생성됩니다.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 셀러 모달 -->
+  <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in duration-150">
+      <div class="p-8 border-b bg-slate-50 relative">
+        <h2 id="modalTitle" class="text-2xl font-black text-slate-800 tracking-tight uppercase leading-none"></h2>
+        <button onclick="closeModal()" class="absolute top-8 right-8 text-slate-400 hover:text-slate-600 font-bold text-2xl">×</button>
+        <div class="flex gap-1 mt-4">
+          <button id="tabRel" onclick="switchTab('rel')" class="text-xs font-black uppercase px-4 py-2 text-slate-400 border-b-2 border-transparent transition-all active-tab">행사상품</button>
+          <button id="tabLog" onclick="switchTab('log')" class="text-xs font-black uppercase px-4 py-2 text-slate-400 border-b-2 border-transparent transition-all">일정/매출 기록</button>
+        </div>
+      </div>
+      <div class="p-8">
+        <div id="tabContentRel">
+          <div id="modalItemList" class="flex flex-wrap gap-2 max-h-96 overflow-y-auto custom-scrollbar pr-1"></div>
+        </div>
+
+        <div id="tabContentLog" class="hidden space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-[10px] font-bold text-slate-400 uppercase">행사일</label>
+              <input type="date" id="logDate" class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex flex-col gap-1 min-w-0">
+              <label class="text-[10px] font-bold text-slate-400 uppercase">상품</label>
+              <div class="flex gap-1">
+                <input type="text" id="logProduct" list="logProductList"
+                       class="min-w-0 w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="상품 선택 또는 입력">
+              </div>
+              <datalist id="logProductList"></datalist>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-[10px] font-bold text-slate-400 uppercase">매출액(억원)</label>
+              <input type="number" id="logRevenue" step="0.01" class="w-full px-3 py-2 border rounded-lg text-sm outline-none" placeholder="0.00">
+            </div>
+          </div>
+
+          <button id="submitLogBtn" onclick="submitLog()" class="w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-sm">기록 추가/수정</button>
+          <div id="logHistoryList" class="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1 pt-2"></div>
+          <div class="text-[11px] text-slate-400 font-bold">
+            * 기록 리스트 항목 클릭: 선택(파란 테두리) / 다시 클릭: 선택 해제 + 입력 초기화
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상품 분석 모달 -->
+  <div id="productModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in duration-150">
+      <div class="p-8 border-b bg-slate-50 relative">
+        <h2 id="productModalTitle" class="text-2xl font-black text-slate-800 tracking-tight uppercase leading-none text-emerald-600">상품 분석</h2>
+        <button onclick="closeProductModal()" class="absolute top-8 right-8 text-slate-400 hover:text-slate-600 font-bold text-2xl">×</button>
+        <p id="productModalSubtitle" class="mt-3 text-xs font-bold text-slate-400 uppercase tracking-wider"></p>
+      </div>
+      <div class="p-8 space-y-6">
+        <div class="bg-white p-6 rounded-[1.8rem] border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-black text-slate-800 uppercase tracking-tight">셀러별 매출</h3>
+            <span id="productSellerTotal" class="text-xs font-black text-emerald-600"></span>
+          </div>
+          <div id="productSellerList" class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar pr-1"></div>
+        </div>
+        <div class="bg-slate-50 border border-slate-100 rounded-[1.8rem] p-5">
+          <p class="text-[11px] font-bold text-slate-500 leading-relaxed">
+            * 현재 상단 기간 필터(연/월)에 맞춰 집계됩니다. (월 선택 시: 해당 월 / 연도만 선택 시: 해당 연도 / 미선택: 전체)
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // -------------------------
+  // State
+  // -------------------------
+  let rawData = [];
+  let salesLogs = [];
+  let currentView = 'seller';
+  let sellerFilter = 'all';
+  let statsMode = 'seller';
+
+  let currentTarget = '';
+  let editingLogId = null;
+
+  let currentProductTarget = '';
+  let pendingJumpToTodayOnNav = false;
+
+  // Calendar state
+  let calendarYear = new Date().getFullYear();
+  let calendarMonth = new Date().getMonth();
+  let selectedCalendarDate = null;
+
+  // Print state
+  let calendarPrintOrientation = 'portrait'; // 'portrait' | 'landscape'
+
+  const koreanSort = (a, b) => (a || '').localeCompare((b || ''), 'ko');
+
+  // -------------------------
+  // Local Storage
+  // -------------------------
+  function saveToLocal() {
+    localStorage.setItem('sorted_rawData', JSON.stringify(rawData));
+    localStorage.setItem('sorted_salesLogs', JSON.stringify(salesLogs));
+  }
+
+  function loadFromLocal() {
+    rawData = JSON.parse(localStorage.getItem('sorted_rawData') || '[]');
+    salesLogs = JSON.parse(localStorage.getItem('sorted_salesLogs') || '[]');
+    if (!Array.isArray(rawData)) rawData = [];
+    if (!Array.isArray(salesLogs)) salesLogs = [];
+    rawData.sort((a,b) => koreanSort(a.name, b.name));
+    salesLogs.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  }
+
+  // -------------------------
+  // Filter period
+  // -------------------------
+  function getPeriod() {
+    const y = document.getElementById('filterYear').value;
+    const m = document.getElementById('filterMonth').value;
+    if (y && m) return { year: y, month: m, label: `${y}년 ${m}월` };
+    if (y) return { year: y, month: null, label: y };
+    return { year: null, month: null, label: '전체' };
+  }
+
+  function filterLogsByPeriod(logs) {
+    const { year, month } = getPeriod();
+    return logs.filter(l => {
+      if (!l.date) return false;
+      const d = String(l.date);
+      if (year && month) return d.startsWith(`${year}-${month}`);
+      if (year) return d.startsWith(year);
+      return true;
+    });
+  }
+
+  function resetGlobalFilter() {
+    document.getElementById('filterYear').value = '';
+    document.getElementById('filterMonth').value = '';
+    pendingJumpToTodayOnNav = true;
+    renderAll();
+  }
+
+  // -------------------------
+  // Utility
+  // -------------------------
+  const uniqueSorted = arr => [...new Set(arr.filter(Boolean))].sort(koreanSort);
+
+  // -------------------------
+  // View switching
+  // -------------------------
+  function switchView(v) {
+    currentView = v;
+    ['seller', 'product', 'calendar', 'stats'].forEach(k => {
+      const btn = document.getElementById('view' + k.charAt(0).toUpperCase() + k.slice(1) + 'Btn');
+      if (btn) {
+        btn.classList.toggle('active-view-btn', k === v);
+        btn.classList.toggle('text-slate-500', k !== v);
+      }
+    });
+
+    document.getElementById('mainGrid').classList.toggle('hidden', v === 'stats' || v === 'calendar');
+    document.getElementById('statsView').classList.toggle('hidden', v !== 'stats');
+    document.getElementById('calendarView').classList.toggle('hidden', v !== 'calendar');
+    document.getElementById('sellerFilterGroup').classList.toggle('hidden', v !== 'seller');
+    document.getElementById('searchArea').classList.toggle('hidden', v === 'stats' || v === 'calendar');
+
+    if (v === 'calendar') closeSelectedDateEvents();
+
+    // ✅ 캘린더는 한 페이지에 맞추기 위해 main padding 약간 줄이기
+    const mainArea = document.getElementById('mainArea');
+    if (mainArea) {
+      if (v === 'calendar') mainArea.classList.add('p-3');
+      else mainArea.classList.remove('p-3');
+    }
+
+    renderAll();
+  }
+
+  function setSellerFilter(f) {
+    sellerFilter = f;
+    ['All', 'Has', 'No'].forEach(k => {
+      const btn = document.getElementById('filter' + k);
+      const active = (f === 'all' && k === 'All') || (f === 'hasProduct' && k === 'Has') || (f === 'noProduct' && k === 'No');
+      btn.classList.toggle('active-filter-btn', active);
+      btn.classList.toggle('text-white', active);
+      btn.classList.toggle('text-slate-500', !active);
+    });
+    renderAll();
+  }
+
+  function setStatsMode(m) {
+    statsMode = m;
+    document.getElementById('statsModeSeller').classList.toggle('active-filter-btn', m === 'seller');
+    document.getElementById('statsModeSeller').classList.toggle('text-white', m === 'seller');
+    document.getElementById('statsModeSeller').classList.toggle('text-slate-500', m !== 'seller');
+    document.getElementById('statsModeProduct').classList.toggle('active-filter-btn', m === 'product');
+    document.getElementById('statsModeProduct').classList.toggle('text-white', m === 'product');
+    document.getElementById('statsModeProduct').classList.toggle('text-slate-500', m !== 'product');
+    renderStats();
+  }
+
+  // -------------------------
+  // Render all
+  // -------------------------
+  function renderAll() {
+    if (currentView === 'stats') {
+      renderStats();
+    } else if (currentView === 'calendar') {
+      renderCalendar();
+    } else {
+      renderGrid();
+    }
+    if (currentTarget) refreshSellerModalOnPeriodChange();
+    if (currentProductTarget) openProductModal(currentProductTarget);
+  }
+
+  // -------------------------
+  // Calendar Functions
+  // -------------------------
+  function renderCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = '';
+
+    const firstDay = new Date(calendarYear, calendarMonth, 1);
+    const lastDay = new Date(calendarYear, calendarMonth + 1, 0);
+    const startDayOfWeek = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+
+    const monthEvents = getEventsForMonth(calendarYear, calendarMonth);
+
+    // prev month
+    const prevMonth = new Date(calendarYear, calendarMonth, 0);
+    const prevMonthDays = prevMonth.getDate();
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+      const day = prevMonthDays - i;
+      const cell = createCalendarCell(day, true, [], calendarYear, calendarMonth - 1);
+      grid.appendChild(cell);
+    }
+
+    // current month
+    const today = new Date();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      const dayEvents = monthEvents[dateStr] || [];
+      const isToday = today.getFullYear() === calendarYear && today.getMonth() === calendarMonth && today.getDate() === day;
+      const cell = createCalendarCell(day, false, dayEvents, calendarYear, calendarMonth, isToday, dateStr);
+      grid.appendChild(cell);
+    }
+
+    // next month
+    const totalCells = Math.ceil((startDayOfWeek + daysInMonth) / 7) * 7;
+    const remainingCells = totalCells - (startDayOfWeek + daysInMonth);
+    for (let day = 1; day <= remainingCells; day++) {
+      const cell = createCalendarCell(day, true, [], calendarYear, calendarMonth + 1);
+      grid.appendChild(cell);
+    }
+
+    requestAnimationFrame(() => {
+      renderCalendarEvents();
+      makeEventsDraggable();
+      setupDropZones();
+    });
+  }
+
+  function createCalendarCell(day, isOtherMonth, events, year, month, isToday = false, dateStr = '') {
+    const cell = document.createElement('div');
+    let classes = 'calendar-day';
+    if (isOtherMonth) classes += ' other-month';
+    if (isToday) classes += ' today';
+    if (events.length > 0 && !isOtherMonth) classes += ' has-events';
+    cell.className = classes;
+    cell.setAttribute('data-date', dateStr);
+    cell.setAttribute('data-events', JSON.stringify(events));
+
+    const dayNum = document.createElement('div');
+    dayNum.className = `calendar-day-num font-bold flex-shrink-0 ${isToday ? 'text-blue-600' : isOtherMonth ? 'text-slate-300' : 'text-slate-700'}`;
+    dayNum.textContent = day;
+    cell.appendChild(dayNum);
+
+    const eventsContainer = document.createElement('div');
+    eventsContainer.className = 'calendar-events-container';
+    cell.appendChild(eventsContainer);
+
+    if (!isOtherMonth && dateStr) {
+      cell.onclick = (e) => {
+        if (e.target.closest('.calendar-event') || e.target.closest('.calendar-more-btn')) return;
+        if (events.length > 0) showSelectedDateEvents(dateStr, events);
+      };
+      cell.style.cursor = events.length > 0 ? 'pointer' : 'default';
+    }
+
+    return cell;
+  }
+
+  // ✅ 셀 높이에 맞춰 이벤트 개수 계산/표시
+  function renderCalendarEvents() {
+    const cells = document.querySelectorAll('.calendar-day:not(.other-month)');
+
+    cells.forEach(cell => {
+      const eventsContainer = cell.querySelector('.calendar-events-container');
+      if (!eventsContainer) return;
+
+      let events = [];
+      try { events = JSON.parse(cell.getAttribute('data-events') || '[]'); } catch(e) { events = []; }
+      if (!events.length) return;
+
+      eventsContainer.innerHTML = '';
+
+      const containerHeight = eventsContainer.clientHeight;
+
+      // ✅ 고정 높이 사용 (16px + 2px gap)
+      const eventHeight = 18;
+
+      const totalSlots = Math.floor(containerHeight / Math.max(1, eventHeight));
+
+      let visibleCount;
+      let showMoreButton;
+
+      if (events.length <= totalSlots) {
+        visibleCount = events.length;
+        showMoreButton = false;
+      } else {
+        visibleCount = Math.max(1, totalSlots - 1);
+        showMoreButton = true;
+      }
+
+      for (let i = 0; i < visibleCount; i++) {
+        const event = events[i];
+        const eventEl = document.createElement('div');
+        eventEl.className = `calendar-event event-color-${i % 6}`;
+
+        const revText = Number(event.revenue || 0).toFixed(1) + '억';
+        
+        // ✅ 텍스트 직접 설정 (block 요소이므로)
+        eventEl.textContent = `${event.seller}-${event.product}-${revText}`;
+        
+        eventEl.title = `셀러: ${event.seller}\n상품: ${event.product}\n매출: ${Number(event.revenue || 0).toFixed(2)}억`;
+        eventEl.setAttribute('data-log-id', event.id);
+
+        eventEl.onclick = (e) => {
+          e.stopPropagation();
+          syncCalendarFilterToHeader();
+          openSellerModal(event.seller, { logId: event.id });
+        };
+        eventsContainer.appendChild(eventEl);
+      }
+
+      if (showMoreButton) {
+        const moreEl = document.createElement('div');
+        moreEl.className = 'calendar-more-btn';
+        moreEl.textContent = `+${events.length - visibleCount}개`;
+        moreEl.onclick = (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const dateStr = cell.getAttribute('data-date');
+          showSelectedDateEvents(dateStr, events);
+        };
+        eventsContainer.appendChild(moreEl);
+      }
+    });
+  }
+
+  function syncCalendarFilterToHeader() {
+    document.getElementById('filterYear').value = String(calendarYear);
+    document.getElementById('filterMonth').value = String(calendarMonth + 1).padStart(2, '0');
+  }
+
+  function getEventsForMonth(year, month) {
+    const events = {};
+    const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+    salesLogs.forEach(log => {
+      if (log.date && log.date.startsWith(monthStr)) {
+        if (!events[log.date]) events[log.date] = [];
+        events[log.date].push(log);
+      }
+    });
+
+    Object.keys(events).forEach(date => {
+      events[date].sort((a, b) => (b.revenue || 0) - (a.revenue || 0));
+    });
+
+    return events;
+  }
+
+  function navigatePeriod(direction) {
+    const y = document.getElementById('filterYear')?.value;
+    const m = document.getElementById('filterMonth')?.value;
+
+    if (pendingJumpToTodayOnNav || !(y && m)) {
+      const today = new Date();
+      calendarYear = today.getFullYear();
+      calendarMonth = today.getMonth();
+      setHeaderFromCalendarState();
+      pendingJumpToTodayOnNav = false;
+
+      closeSelectedDateEvents();
+      if (currentView === 'calendar') renderCalendar();
+      else renderAll();
+      return;
+    }
+
+    syncCalendarStateFromHeader();
+
+    calendarMonth += direction;
+    if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+    else if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+
+    setHeaderFromCalendarState();
+    closeSelectedDateEvents();
+    if (currentView === 'calendar') renderCalendar();
+    else renderAll();
+  }
+
+  function syncCalendarStateFromHeader() {
+    const y = document.getElementById('filterYear')?.value;
+    const m = document.getElementById('filterMonth')?.value;
+    if (y && m) {
+      calendarYear = parseInt(y, 10);
+      calendarMonth = parseInt(m, 10) - 1;
+    }
+  }
+
+  function setHeaderFromCalendarState() {
+    document.getElementById('filterYear').value = String(calendarYear);
+    document.getElementById('filterMonth').value = String(calendarMonth + 1).padStart(2, '0');
+  }
+
+  function showSelectedDateEvents(dateStr, events) {
+    selectedCalendarDate = dateStr;
+    const container = document.getElementById('selectedDateEvents');
+    const title = document.getElementById('selectedDateTitle');
+    const list = document.getElementById('selectedDateEventsList');
+
+    const [year, month, day] = dateStr.split('-');
+    title.textContent = `${year}년 ${parseInt(month)}월 ${parseInt(day)}일 일정 (${events.length}건)`;
+
+    list.innerHTML = '';
+    const totalRevenue = events.reduce((sum, e) => sum + (e.revenue || 0), 0);
+
+    const summary = document.createElement('div');
+    summary.className = 'bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-100 mb-4';
+    summary.innerHTML = `
+      <div class="flex justify-between items-center">
+        <span class="text-sm font-bold text-slate-600">총 매출</span>
+        <span class="text-lg font-black text-blue-600">${totalRevenue.toFixed(2)}억원</span>
+      </div>
+    `;
+    list.appendChild(summary);
+
+    events.forEach((event, idx) => {
+      const item = document.createElement('div');
+      item.className = `flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:shadow-md transition-all cursor-pointer event-color-${idx % 6}`;
+      item.innerHTML = `
+        <div class="flex-1">
+          <div class="font-black text-sm">${escapeHtml(event.seller)} - ${escapeHtml(event.product)}</div>
+        </div>
+        <div class="text-right">
+          <div class="font-black text-blue-600">${Number(event.revenue || 0).toFixed(2)}억</div>
+        </div>
+      `;
+      item.onclick = () => {
+        syncCalendarFilterToHeader();
+        openSellerModal(event.seller, { logId: event.id });
+      };
+      list.appendChild(item);
+    });
+
+    container.classList.remove('hidden');
+  }
+
+  function closeSelectedDateEvents() {
+    document.getElementById('selectedDateEvents').classList.add('hidden');
+    selectedCalendarDate = null;
+  }
+
+  // -------------------------
+  // Drag & Drop
+  // -------------------------
+  function makeEventsDraggable() {
+    document.querySelectorAll('.calendar-event').forEach(el => {
+      el.draggable = true;
+
+      el.addEventListener('dragstart', (e) => {
+        const eventEl = e.target.closest('.calendar-event');
+        if (!eventEl) return;
+
+        const logId = eventEl.getAttribute('data-log-id');
+        const cell = eventEl.closest('.calendar-day');
+        const originalDate = cell.getAttribute('data-date');
+        if (!logId) return;
+
+        e.dataTransfer.setData('text/plain', JSON.stringify({
+          logId: parseInt(logId, 10),
+          originalDate
+        }));
+
+        eventEl.classList.add('opacity-50');
+      });
+
+      el.addEventListener('dragend', (e) => {
+        e.target.classList.remove('opacity-50');
+      });
+    });
+  }
+
+  function setupDropZones() {
+    document.querySelectorAll('.calendar-day:not(.other-month)').forEach(cell => {
+      cell.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        cell.classList.add('ring-2', 'ring-blue-400', 'bg-blue-50/30');
+      });
+
+      cell.addEventListener('dragleave', () => {
+        cell.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50/30');
+      });
+
+      cell.addEventListener('drop', (e) => {
+        e.preventDefault();
+        cell.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50/30');
+
+        const data = e.dataTransfer.getData('text/plain');
+        if (!data) return;
+
+        try {
+          const { logId, originalDate } = JSON.parse(data);
+          const newDate = cell.getAttribute('data-date');
+          if (newDate === originalDate) return;
+
+          const log = salesLogs.find(l => l.id === logId);
+          if (log) {
+            log.date = newDate;
+            salesLogs.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+            saveToLocal();
+            renderCalendar();
+          }
+        } catch (err) {
+          console.error('드롭 처리 오류:', err);
+        }
+      });
+    });
+  }
+
+  // -------------------------
+  // Grid render (seller/product)
+  // -------------------------
+  function createEmptyStateCard(type) {
+    const card = document.createElement('div');
+    card.className = "empty-state-card bg-white rounded-[2rem] p-8 shadow-sm cursor-pointer transition-all col-span-full flex flex-col items-center justify-center min-h-[200px]";
+    card.onclick = () => openNewEntryModal();
+
+    const icon = type === 'seller' ? '👤' : '📦';
+    const title = type === 'seller' ? '등록된 셀러가 없습니다' : '등록된 상품이 없습니다';
+    const subtitle = '클릭하여 첫 데이터를 추가하세요';
+
+    card.innerHTML = `
+      <div class="text-5xl mb-4">${icon}</div>
+      <h3 class="text-lg font-black text-slate-400 mb-2">${title}</h3>
+      <p class="text-sm text-slate-400">${subtitle}</p>
+      <button class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all">
+        + 신규 추가
+      </button>
+    `;
+    return card;
+  }
+
+  function createCard(title, items, badge, salesTotal, salesLabel) {
+    const div = document.createElement('div');
+    div.className = "bg-white rounded-[2rem] p-6 shadow-sm cursor-pointer hover:shadow-lg transition-all card-animate border border-slate-100 hover:border-blue-200";
+    div.onclick = () => {
+      if (badge === 'SELLER') openSellerModal(title);
+      else openProductModal(title);
+    };
+    div.innerHTML = `
+      <span class="text-[9px] font-black uppercase px-2 py-1 rounded-lg ${badge === 'SELLER' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}">${badge}</span>
+      <h3 class="text-lg font-black text-slate-800 mt-3 mb-2 tracking-tight leading-tight">${escapeHtml(title)}</h3>
+      <div class="flex flex-wrap gap-1 mb-3 max-h-20 overflow-hidden">
+        ${items.slice(0, 5).map(i => `<span class="text-[10px] font-medium text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">${escapeHtml(i)}</span>`).join('')}
+        ${items.length > 5 ? `<span class="text-[10px] font-bold text-slate-500">+${items.length - 5}</span>` : ''}
+      </div>
+      <div class="pt-3 border-t border-slate-100 flex justify-between items-center">
+        <span class="text-[10px] font-bold text-slate-400 uppercase">${salesLabel}</span>
+        <span class="text-sm font-black text-blue-600">${Number(salesTotal || 0).toFixed(2)}억</span>
+      </div>
+    `;
+    return div;
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('mainGrid');
+    grid.innerHTML = "";
+
+    const { label } = getPeriod();
+    const salesLabel = (label === '전체') ? '총 매출' : `${label} 매출`;
+    const search = (document.getElementById('globalSearch').value || '').toLowerCase();
+    let hasVisibleCards = false;
+
+    if (currentView === 'seller') {
+      rawData.forEach(s => {
+        const logs = filterLogsByPeriod(salesLogs.filter(l => l.seller === s.name));
+        const productsInPeriod = uniqueSorted(logs.map(l => l.product));
+        const hasProd = productsInPeriod.length > 0;
+
+        if (sellerFilter === 'hasProduct' && !hasProd) return;
+        if (sellerFilter === 'noProduct' && hasProd) return;
+
+        const sales = logs.reduce((sum, l) => sum + Number(l.revenue || 0), 0);
+        const matchesSearch =
+          (s.name || '').toLowerCase().includes(search) ||
+          productsInPeriod.some(p => (p || '').toLowerCase().includes(search));
+
+        if (!matchesSearch) return;
+
+        hasVisibleCards = true;
+        grid.appendChild(createCard(s.name, productsInPeriod, 'SELLER', sales, salesLabel));
+      });
+
+      if (!hasVisibleCards) {
+        if (search) grid.innerHTML = `<div class='text-center py-12 text-slate-300 font-black uppercase col-span-full'>검색 결과 없음</div>`;
+        else grid.appendChild(createEmptyStateCard('seller'));
+      }
+    } else if (currentView === 'product') {
+      const productMap = new Map();
+      rawData.forEach(s => (s.products || []).forEach(p => { if (!productMap.has(p)) productMap.set(p, []); }));
+      salesLogs.forEach(l => { if (l.product && !productMap.has(l.product)) productMap.set(l.product, []); });
+
+      [...productMap.keys()].sort(koreanSort).forEach(p => {
+        const logs = filterLogsByPeriod(salesLogs.filter(l => l.product === p));
+        const sales = logs.reduce((sum, l) => sum + Number(l.revenue || 0), 0);
+        const sellersInPeriod = uniqueSorted(logs.map(l => l.seller));
+
+        const matchesSearch =
+          (p || '').toLowerCase().includes(search) ||
+          sellersInPeriod.some(n => (n || '').toLowerCase().includes(search));
+
+        if (!matchesSearch) return;
+
+        hasVisibleCards = true;
+        grid.appendChild(createCard(p, sellersInPeriod, 'PRODUCT', sales, salesLabel));
+      });
+
+      if (!hasVisibleCards) {
+        if (search) grid.innerHTML = `<div class='text-center py-12 text-slate-300 font-black uppercase col-span-full'>검색 결과 없음</div>`;
+        else grid.appendChild(createEmptyStateCard('product'));
+      }
+    }
+  }
+
+  // -------------------------
+  // Stats
+  // -------------------------
+  function renderStats() {
+    if (currentView !== 'stats') return;
+
+    const { label } = getPeriod();
+    document.getElementById('statsDisplayTitle').innerText = (label === '전체') ? '전체 통합 분석' : `${label} 상세 분석`;
+
+    const filteredLogs = filterLogsByPeriod(salesLogs);
+    const totalRevenue = filteredLogs.reduce((sum, l) => sum + Number(l.revenue || 0), 0);
+    document.getElementById('totalMonthRevenue').innerHTML = `${totalRevenue.toFixed(2)} <span class="text-xl font-bold">억원</span>`;
+
+    const agg = {};
+    filteredLogs.forEach(l => {
+      const key = (statsMode === 'seller') ? l.seller : l.product;
+      if (!key) return;
+      agg[key] = (agg[key] || 0) + Number(l.revenue || 0);
+    });
+
+    const sorted = Object.entries(agg).sort((a,b)=>b[1]-a[1]);
+    const container = document.getElementById('statsTableContainer');
+    container.innerHTML = "";
+
+    if (!sorted.length) {
+      container.innerHTML = `
+        <div class='text-center py-12'>
+          <div class="text-slate-300 font-black uppercase mb-4">No Data</div>
+          <button onclick="openNewEntryModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all">
+            + 데이터 추가하기
+          </button>
+        </div>`;
+      return;
+    }
+
+    sorted.forEach(([name, rev], idx) => {
+      const percent = totalRevenue > 0 ? (rev / totalRevenue * 100).toFixed(1) : '0.0';
+      const row = document.createElement('div');
+      row.className = "flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:bg-white hover:shadow-md transition-all";
+      row.innerHTML = `
+        <div class="w-8 h-8 flex items-center justify-center bg-blue-600 rounded-full text-[10px] font-black text-white">${idx + 1}</div>
+        <div class="flex-1">
+          <div class="flex justify-between items-center mb-1">
+            <h5 class="text-sm font-black text-slate-800">${escapeHtml(name)}</h5>
+            <span class="text-xs font-bold text-blue-600">${Number(rev||0).toFixed(2)}억</span>
+          </div>
+          <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+            <div class="bg-blue-500 h-full transition-all duration-700" style="width: ${percent}%;"></div>
+          </div>
+        </div>
+        <div class="text-right w-12 text-[11px] font-black text-slate-400">${percent}%</div>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  // -------------------------
+  // 신규 데이터
+  // -------------------------
+  function openNewEntryModal() {
+    updateNewEntryDataLists();
+    document.getElementById('newSellerName').value = '';
+    document.getElementById('newProductName').value = '';
+    document.getElementById('newEventDate').value = '';
+    document.getElementById('newRevenue').value = '';
+    document.getElementById('newEntryModal').classList.remove('hidden');
+    setTimeout(() => { document.getElementById('newSellerName').focus(); }, 100);
+  }
+
+  function closeNewEntryModal() {
+    document.getElementById('newEntryModal').classList.add('hidden');
+  }
+
+  function updateNewEntryDataLists() {
+    const sellersList = document.getElementById('existingSellersList');
+    sellersList.innerHTML = '';
+    const sellers = uniqueSorted(rawData.map(s => s.name));
+    sellers.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      sellersList.appendChild(opt);
+    });
+
+    const productsList = document.getElementById('existingProductsList');
+    productsList.innerHTML = '';
+    const products = getGlobalMasterProducts();
+    products.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      productsList.appendChild(opt);
+    });
+  }
+
+  function submitNewEntry() {
+    const sellerName = (document.getElementById('newSellerName').value || '').trim();
+    const productName = (document.getElementById('newProductName').value || '').trim();
+    const eventDate = document.getElementById('newEventDate').value || '';
+    const revenueVal = document.getElementById('newRevenue').value;
+    const revenue = revenueVal ? Number(revenueVal) : null;
+
+    if (!sellerName) {
+      alert('셀러명을 입력해주세요.');
+      document.getElementById('newSellerName').focus();
+      return;
+    }
+
+    let seller = rawData.find(s => s.name === sellerName);
+    if (!seller) {
+      seller = { name: sellerName, products: [] };
+      rawData.push(seller);
+      rawData.sort((a, b) => koreanSort(a.name, b.name));
+    }
+
+    if (productName) {
+      if (!seller.products.includes(productName)) {
+        seller.products.push(productName);
+        seller.products = uniqueSorted(seller.products);
+      }
+
+      if (eventDate || revenue !== null) {
+        salesLogs.push({
+          id: Date.now(),
+          seller: sellerName,
+          product: productName,
+          date: eventDate,
+          revenue: revenue !== null ? revenue : 0
+        });
+        salesLogs.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      }
+    }
+
+    saveToLocal();
+    closeNewEntryModal();
+    renderAll();
+  }
+
+  // -------------------------
+  // Seller modal
+  // -------------------------
+  function switchTab(t) {
+    const isRel = t === 'rel';
+    document.getElementById('tabRel').classList.toggle('active-tab', isRel);
+    document.getElementById('tabLog').classList.toggle('active-tab', !isRel);
+    document.getElementById('tabRel').classList.toggle('text-slate-400', !isRel);
+    document.getElementById('tabLog').classList.toggle('text-slate-400', isRel);
+    document.getElementById('tabContentRel').classList.toggle('hidden', !isRel);
+    document.getElementById('tabContentLog').classList.toggle('hidden', isRel);
+  }
+
+  function getCurrentSeller() {
+    return rawData.find(s => s.name === currentTarget) || null;
+  }
+
+  function openSellerModal(sellerName, opts = {}) {
+    currentTarget = sellerName;
+    editingLogId = null;
+
+    document.getElementById('modalTitle').innerText = sellerName;
+    document.getElementById('modal').classList.remove('hidden');
+
+    updateLogProductDropdownMaster();
+    resetLogFields();
+    renderModalItemsPeriod();
+    renderLogHistoryPeriod();
+
+    if (opts.logId) {
+      const log = salesLogs.find(l => l.id === opts.logId);
+      if (log) {
+        switchTab('log');
+        selectLog(log);
+        return;
+      }
+    }
+    switchTab('rel');
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.add('hidden');
+    currentTarget = '';
+    editingLogId = null;
+    resetLogFields();
+  }
+
+  function refreshSellerModalOnPeriodChange() {
+    if (editingLogId) {
+      const visibleIds = new Set(filterLogsByPeriod(salesLogs.filter(l => l.seller === currentTarget)).map(l => l.id));
+      if (!visibleIds.has(editingLogId)) {
+        editingLogId = null;
+        resetLogFields();
+      }
+    }
+    updateLogProductDropdownMaster();
+    renderModalItemsPeriod();
+    renderLogHistoryPeriod();
+  }
+
+  function renderModalItemsPeriod() {
+    const listEl = document.getElementById('modalItemList');
+    listEl.innerHTML = "";
+    if (!currentTarget) return;
+
+    const sellerLogs = filterLogsByPeriod(salesLogs.filter(l => l.seller === currentTarget));
+    const products = uniqueSorted(sellerLogs.map(l => l.product));
+
+    if (!products.length) {
+      listEl.innerHTML = `
+        <div class="text-center py-10 text-slate-300 font-black uppercase w-full">
+          연결 상품 없음
+          <div class="mt-2 text-[11px] font-bold text-slate-400 normal-case">
+            신규 입력은 <b>일정/매출 기록</b> 탭에서 전체 연결 상품을 선택해 추가하세요.
+          </div>
+        </div>`;
+      return;
+    }
+
+    products.forEach(p => {
+      const pLogs = sellerLogs.filter(l => l.product === p);
+      const totalSales = pLogs.reduce((sum, l) => sum + Number(l.revenue || 0), 0);
+      const dates = uniqueSorted(pLogs.map(l => l.date)).slice(0, 3).join(', ');
+
+      const chip = document.createElement('div');
+      chip.className = "bg-white text-slate-700 px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 shadow-sm flex items-center gap-2 hover:bg-blue-50 transition-all cursor-pointer";
+      chip.innerHTML = `
+        <span>${escapeHtml(p)}</span>
+        ${dates ? `<span class="text-blue-500 font-black ml-1 text-[9px] bg-blue-50 px-1.5 py-0.5 rounded-lg border border-blue-100 shadow-sm">${escapeHtml(dates)}</span>` : ''}
+        <span class="text-slate-400 font-normal">(${totalSales.toFixed(2)}억)</span>
+      `;
+      chip.onclick = () => {
+        switchTab('log');
+        document.getElementById('logProduct').value = p;
+        const latest = pLogs.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
+        if (latest) selectLog(latest, { fromRelClick: true });
+        else {
+          editingLogId = null;
+          resetLogFields({ keepProduct: true });
+          renderLogHistoryPeriod();
+        }
+      };
+      listEl.appendChild(chip);
+    });
+  }
+
+  function getGlobalMasterProducts() {
+    const set = new Set();
+    (rawData || []).forEach(s => (s.products || []).forEach(p => { if (p) set.add(p); }));
+    (salesLogs || []).forEach(l => { if (l && l.product) set.add(l.product); });
+    return uniqueSorted(Array.from(set));
+  }
+
+  function updateLogProductDropdownMaster() {
+    const input = document.getElementById('logProduct');
+    const datalist = document.getElementById('logProductList');
+    if (!input || !datalist) return;
+
+    const currentValue = input.value || "";
+    datalist.innerHTML = "";
+
+    const products = getGlobalMasterProducts();
+    products.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p;
+      datalist.appendChild(opt);
+    });
+
+    input.value = currentValue;
+  }
+
+  function renderLogHistoryPeriod() {
+    const container = document.getElementById('logHistoryList');
+    container.innerHTML = "";
+    if (!currentTarget) return;
+
+    const logs = filterLogsByPeriod(salesLogs.filter(l => l.seller === currentTarget))
+      .slice()
+      .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+    if (!logs.length) {
+      container.innerHTML = "<div class='text-center py-10 text-slate-300 font-black uppercase'>No History</div>";
+      return;
+    }
+
+    logs.forEach(l => {
+      const div = document.createElement('div');
+      const isSelected = (l.id === editingLogId);
+      div.className = `flex justify-between items-center p-3 bg-white rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-blue-400 transition-all group ${isSelected ? 'selected-log-item' : ''}`;
+
+      div.onclick = (e) => {
+        if (e.target.closest('button')) return;
+        if (editingLogId === l.id) {
+          editingLogId = null;
+          resetLogFields();
+          renderLogHistoryPeriod();
+        } else {
+          selectLog(l);
+        }
+      };
+
+      div.innerHTML = `
+        <div class="flex flex-col">
+          <span class="text-[9px] font-black text-blue-500 uppercase">${escapeHtml(l.date || '날짜 미정')}</span>
+          <span class="text-xs font-bold text-slate-700">
+            ${escapeHtml(l.product || '')} - <span class="text-blue-700">${Number(l.revenue || 0).toFixed(2)}억</span>
+          </span>
+        </div>
+        <button onclick="deleteLog(${l.id})" class="text-slate-300 hover:text-red-500 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function selectLog(log) {
+    editingLogId = log.id;
+    document.getElementById('logDate').value = log.date || '';
+    document.getElementById('logProduct').value = log.product || '';
+    document.getElementById('logRevenue').value = log.revenue ?? '';
+    document.getElementById('submitLogBtn').innerText = '기록 수정';
+    renderLogHistoryPeriod();
+  }
+
+  function resetLogFields(opts = {}) {
+    document.getElementById('logDate').value = '';
+    if (!opts.keepProduct) document.getElementById('logProduct').value = '';
+    document.getElementById('logRevenue').value = '';
+    document.getElementById('submitLogBtn').innerText = '기록 추가/수정';
+  }
+
+  function submitLog() {
+    const date = document.getElementById('logDate').value;
+    const product = (document.getElementById('logProduct').value || '').trim();
+    const rev = parseFloat(document.getElementById('logRevenue').value) || 0;
+
+    if (!product) { alert('상품을 입력하세요.'); return; }
+
+    const seller = getCurrentSeller();
+    if (seller && !seller.products.includes(product)) {
+      seller.products.push(product);
+      seller.products = uniqueSorted(seller.products);
+    }
+
+    if (editingLogId) {
+      const log = salesLogs.find(l => l.id === editingLogId);
+      if (log) {
+        log.date = date;
+        log.product = product;
+        log.revenue = rev;
+      }
+    } else {
+      salesLogs.push({ id: Date.now(), seller: currentTarget, product, date, revenue: rev });
+    }
+
+    salesLogs.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    editingLogId = null;
+    saveToLocal();
+    resetLogFields();
+    renderModalItemsPeriod();
+    renderLogHistoryPeriod();
+    renderAll();
+  }
+
+  function deleteLog(id) {
+    if (!confirm('이 기록을 삭제하시겠습니까?')) return;
+    salesLogs = salesLogs.filter(l => l.id !== id);
+    if (editingLogId === id) { editingLogId = null; resetLogFields(); }
+    saveToLocal();
+    renderModalItemsPeriod();
+    renderLogHistoryPeriod();
+    renderAll();
+  }
+
+  // -------------------------
+  // Product modal
+  // -------------------------
+  function openProductModal(productName) {
+    currentProductTarget = productName;
+    document.getElementById('productModalTitle').innerText = productName;
+    document.getElementById('productModal').classList.remove('hidden');
+
+    const { label } = getPeriod();
+    document.getElementById('productModalSubtitle').innerText = (label === '전체') ? '전체 기간 집계' : `${label} 집계`;
+
+    const logs = filterLogsByPeriod(salesLogs.filter(l => l.product === productName));
+    const sellerAgg = {};
+    logs.forEach(l => { sellerAgg[l.seller] = (sellerAgg[l.seller] || 0) + Number(l.revenue || 0); });
+    const sorted = Object.entries(sellerAgg).sort((a, b) => b[1] - a[1]);
+
+    const total = sorted.reduce((s, [, v]) => s + v, 0);
+    document.getElementById('productSellerTotal').innerText = `총 ${total.toFixed(2)}억원`;
+
+    const list = document.getElementById('productSellerList');
+    list.innerHTML = "";
+    if (!sorted.length) {
+      list.innerHTML = "<div class='text-center py-10 text-slate-300 font-black uppercase'>No Data</div>";
+      return;
+    }
+
+    sorted.forEach(([seller, rev], idx) => {
+      const percent = total > 0 ? (rev / total * 100).toFixed(1) : '0.0';
+      const row = document.createElement('div');
+      row.className = "flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-all cursor-pointer";
+      row.onclick = () => { closeProductModal(); openSellerModal(seller); };
+      row.innerHTML = `
+        <div class="w-6 h-6 flex items-center justify-center bg-emerald-600 rounded-full text-[9px] font-black text-white">${idx + 1}</div>
+        <div class="flex-1">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-xs font-bold text-slate-700">${escapeHtml(seller)}</span>
+            <span class="text-xs font-bold text-emerald-600">${rev.toFixed(2)}억</span>
+          </div>
+          <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+            <div class="bg-emerald-500 h-full" style="width: ${percent}%;"></div>
+          </div>
+        </div>
+        <div class="text-[10px] font-black text-slate-400 w-10 text-right">${percent}%</div>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  function closeProductModal() {
+    document.getElementById('productModal').classList.add('hidden');
+    currentProductTarget = '';
+  }
+
+  // -------------------------
+  // Excel export / import
+  // -------------------------
+  function yymmddLocal() {
+    const d = new Date();
+    const yy = String(d.getFullYear()).slice(2);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yy}${mm}${dd}`;
+  }
+
+  function exportToExcel() {
+    const wb = XLSX.utils.book_new();
+    const rows = [];
+    salesLogs.forEach(l => {
+      rows.push({ '셀러명': l.seller, '상품명': l.product, '행사일': l.date, '매출액(억원)': l.revenue });
+    });
+    rawData.forEach(s => {
+      (s.products || []).forEach(p => {
+        if (!rows.some(r => r['셀러명'] === s.name && r['상품명'] === p)) {
+          rows.push({ '셀러명': s.name, '상품명': p, '행사일': '', '매출액(억원)': '' });
+        }
+      });
+      if (!(s.products || []).length && !rows.some(r => r['셀러명'] === s.name)) {
+        rows.push({ '셀러명': s.name, '상품명': '', '행사일': '', '매출액(억원)': '' });
+      }
+    });
+    rows.sort((a, b) => koreanSort(a['셀러명'], b['셀러명']) || koreanSort(a['상품명'], b['상품명']));
+    const ws = XLSX.utils.json_to_sheet(rows, { header: ['셀러명', '상품명', '행사일', '매출액(억원)'] });
+    XLSX.utils.book_append_sheet(wb, ws, 'Data');
+    XLSX.writeFile(wb, `seller_dashboard_${yymmddLocal()}.xlsx`);
+  }
+
+  function triggerImport() { document.getElementById('importFile').click(); }
+
+  function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+        const sellerMap = new Map();
+        const newLogs = [];
+
+        json.forEach((row, index) => {
+          const seller = String(row["셀러명"] || row["셀러"] || row["Seller"] || row["seller"] || "").trim();
+          if (!seller) return;
+
+          if (!sellerMap.has(seller)) sellerMap.set(seller, { name: seller, products: [] });
+
+          const product = String(row["상품명"] || row["상품"] || row["Product"] || row["product"] || "").trim();
+          if (product) {
+            const s = sellerMap.get(seller);
+            if (!s.products.includes(product)) s.products.push(product);
+          }
+
+          let date = row["행사일"] || row["일정"] || row["날짜"] || row["Date"] || row["date"] || "";
+          if (date instanceof Date) date = date.toISOString().split('T')[0];
+          else date = String(date).trim().slice(0, 10);
+
+          let revenue = row["매출액(억원)"] ?? row["매출액"] ?? row["매출"] ?? row["Revenue"] ?? row["revenue"] ?? "";
+          const parsed = Number(String(revenue).replace(/,/g, ""));
+          const rev = isNaN(parsed) ? null : parsed;
+
+          if (product && (date || rev !== null)) {
+            newLogs.push({
+              id: Date.now() + index,
+              seller,
+              product,
+              date: date || "",
+              revenue: rev !== null ? rev : 0
+            });
+          }
+        });
+
+        rawData = Array.from(sellerMap.values()).map(s => ({ name: s.name, products: uniqueSorted(s.products) }))
+          .sort((a,b)=>koreanSort(a.name,b.name));
+        salesLogs = newLogs.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+        saveToLocal();
+        alert(`데이터 불러오기 완료!\n등록된 셀러: ${rawData.length}명\n기록: ${salesLogs.length}건`);
+        location.reload();
+      } catch (err) {
+        console.error(err);
+        alert("파일 처리 중 오류 발생: " + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function clearAllData() {
+    if (!confirm("모든 데이터를 영구 삭제하시겠습니까?")) return;
+    localStorage.removeItem('sorted_rawData');
+    localStorage.removeItem('sorted_salesLogs');
+    location.reload();
+  }
+
+  // -------------------------
+  // Print (Calendar)
+  // -------------------------
+  function openCalendarPrintModal() {
+    // 캘린더 뷰가 아니어도 프린트는 캘린더 기준으로 동작
+    document.getElementById('calendarPrintModal').classList.remove('hidden');
+    syncPrintOriButtons();
+  }
+
+  function closeCalendarPrintModal() {
+    document.getElementById('calendarPrintModal').classList.add('hidden');
+  }
+
+  function setCalendarPrintOrientation(ori) {
+    calendarPrintOrientation = ori;
+    syncPrintOriButtons();
+  }
+
+  function syncPrintOriButtons() {
+    const p = document.getElementById('printOriPortrait');
+    const l = document.getElementById('printOriLandscape');
+    if (!p || !l) return;
+
+    if (calendarPrintOrientation === 'portrait') {
+      p.classList.add('border-blue-600','bg-blue-50','text-blue-700');
+      p.classList.remove('border-slate-200','text-slate-600');
+      l.classList.remove('border-blue-600','bg-blue-50','text-blue-700');
+      l.classList.add('border-slate-200','text-slate-600');
+    } else {
+      l.classList.add('border-blue-600','bg-blue-50','text-blue-700');
+      l.classList.remove('border-slate-200','text-slate-600');
+      p.classList.remove('border-blue-600','bg-blue-50','text-blue-700');
+      p.classList.add('border-slate-200','text-slate-600');
+    }
+  }
+
+  async function executeCalendarPrint() {
+    closeCalendarPrintModal();
+
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    loadingOverlay.classList.add('active');
+
+    // 캘린더가 다른 뷰에 있어도 캡처는 해야 하므로 잠깐 캘린더 렌더 상태 확보
+    const calendarView = document.getElementById('calendarView');
+    const wasHidden = calendarView.classList.contains('hidden');
+    const prevView = currentView;
+
+    if (prevView !== 'calendar') {
+      // 캘린더로 전환해서 렌더 확실히
+      switchView('calendar');
+      await new Promise(r => setTimeout(r, 60));
+    }
+
+    // ✅ 프린트 전 레이아웃 기준으로 이벤트 개수 재계산(필수)
+    await new Promise(r => requestAnimationFrame(r));
+    renderCalendarEvents();
+    await new Promise(r => setTimeout(r, 80));
+
+    // ✅ 캡처용 클래스 추가 (한글 폰트 보정)
+    const calendarGridEl = document.getElementById('calendarGrid');
+    calendarGridEl.classList.add('print-capture-mode');
+    await new Promise(r => setTimeout(r, 50));  // CSS 적용 대기
+
+    // print style(@page)
+    let printStyle = document.getElementById('calendarPrintPageStyle');
+    if (printStyle) printStyle.remove();
+    printStyle = document.createElement('style');
+    printStyle.id = 'calendarPrintPageStyle';
+    printStyle.textContent = `@media print { @page { size: A4 ${calendarPrintOrientation}; margin: 6mm; } }`;
+    document.head.appendChild(printStyle);
+
+    try {
+      const canvas = await html2canvas(calendarGridEl, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: -window.scrollY
+      });
+
+      const printContainer = document.getElementById('calendarPrintContainer');
+      printContainer.innerHTML = '';
+
+      const img = document.createElement('img');
+      img.src = canvas.toDataURL('image/png');
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '100%';
+      img.style.width = 'auto';
+      img.style.height = 'auto';
+      img.style.objectFit = 'contain';
+      printContainer.appendChild(img);
+
+      loadingOverlay.classList.remove('active');
+
+      setTimeout(() => {
+        window.print();
+      }, 100);
+
+    } catch (err) {
+      console.error('[CalendarPrint] error:', err);
+      loadingOverlay.classList.remove('active');
+      alert('인쇄 준비 중 오류가 발생했습니다.');
+    } finally {
+      // ✅ 캡처용 클래스 제거
+      document.getElementById('calendarGrid')?.classList.remove('print-capture-mode');
+      
+      // 캘린더로 강제 전환했으면 원상 복구
+      if (prevView !== 'calendar') {
+        switchView(prevView);
+      } else if (wasHidden) {
+        calendarView.classList.add('hidden');
+      }
+    }
+  }
+
+  // -------------------------
+  // Misc
+  // -------------------------
+  function escapeHtml(s) {
+    return String(s ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function onPeriodDropdownChange() {
+    const y = document.getElementById('filterYear').value;
+    const m = document.getElementById('filterMonth').value;
+    if (y && m) pendingJumpToTodayOnNav = false;
+    syncCalendarStateFromHeader();
+    closeSelectedDateEvents();
+    renderAll();
+  }
+
+  // -------------------------
+  // Event wiring
+  // -------------------------
+  let resizeTimer = null;
+  window.onload = () => {
+    loadFromLocal();
+    renderAll();
+
+    document.getElementById('filterYear').addEventListener('change', onPeriodDropdownChange);
+    document.getElementById('filterMonth').addEventListener('change', onPeriodDropdownChange);
+
+    window.addEventListener('resize', () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (currentView === 'calendar') {
+          renderCalendarEvents();
+        }
+      }, 100);
+    });
+  };
+
+  window.onclick = (e) => {
+    const modal = document.getElementById('modal');
+    const pmodal = document.getElementById('productModal');
+    const newEntryModal = document.getElementById('newEntryModal');
+    const printModal = document.getElementById('calendarPrintModal');
+
+    if (e.target === modal) closeModal();
+    if (e.target === pmodal) closeProductModal();
+    if (e.target === newEntryModal) closeNewEntryModal();
+    if (e.target === printModal) closeCalendarPrintModal();
+  };
+</script>
+
+</body>
+</html>
