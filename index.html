@@ -191,13 +191,13 @@
                 <div class="w-px h-4 bg-slate-200"></div>
                 <select id="filterYear" class="px-2 py-2 text-xs font-bold rounded-lg text-slate-500 bg-slate-50 border border-slate-200 outline-none">
                     <option value="">연도</option>
-                    <option value="2024">2024</option>
-                    <option value="2025">2025</option>
                     <option value="2026" selected>2026</option>
+                    <option value="2027">2027</option>
+                    <option value="2028">2028</option>
                 </select>
                 <select id="filterMonth" class="px-2 py-2 text-xs font-bold rounded-lg text-slate-500 bg-slate-50 border border-slate-200 outline-none">
                     <option value="">월</option>
-                    <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option>
+                    <option value="01" selected>01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option>
                     <option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option>
                     <option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
                 </select>
@@ -243,7 +243,8 @@
             </div>
             <button onclick="exportToExcel()" class="bg-emerald-600 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-emerald-700 transition-all">저장</button>
             <button onclick="triggerImport()" class="bg-slate-700 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-slate-800 transition-all">불러오기</button>
-            <button id="excelBackupBtn" onclick="setupExcelAutoBackup()" class="bg-blue-50 text-blue-700 border border-blue-100 px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-blue-100 transition-all" title="Chrome/Edge에서 폴더를 선택하면 이후 자동으로 같은 이름으로 덮어써 저장됩니다.">엑셀 자동백업</button>
+            <!-- <button id="excelBackupBtn" onclick="setupExcelAutoBackup()" class="bg-blue-50 text-blue-700 border border-blue-100 px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-blue-100 transition-all" title="Chrome/Edge에서 폴더를 선택하면 이후 자동으로 같은 이름으로 덮어써 저장됩니다.">엑셀 자동백업</button>
+            -->
             <button onclick="clearAllData()" class="bg-red-50 text-red-600 border border-red-100 px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-red-100">초기화</button>
             <input type="file" id="importFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="importData(event)">
         </div>
@@ -328,7 +329,7 @@
 
     <!-- 푸터 -->
     <footer class="bg-white border-t py-4 px-8 text-center md:flex md:justify-between items-center z-30">
-        <p class="text-slate-400 text-xs font-medium">© 2026 <span class="font-black text-slate-600 uppercase">System</span>. All rights reserved.</p>
+        <p class="text-slate-400 text-xs font-medium">© 2026 <span class="font-black text-slate-600 uppercase">Mr. Oasis</span>. All rights reserved.</p>
         <p class="text-slate-400 text-xs font-medium mt-1 md:mt-0">Seller Management System</p>
     </footer>
 
@@ -344,7 +345,7 @@
                 <!-- 셀러명 (필수) -->
                 <div class="flex flex-col gap-2">
                     <label class="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                        셀러명 
+                        셀러명
                         <span class="text-red-500">*</span>
                         <span class="text-slate-400 font-normal normal-case">(필수)</span>
                     </label>
@@ -393,11 +394,11 @@
 
                 <!-- 버튼 영역 -->
                 <div class="flex gap-3 pt-4">
-                    <button onclick="closeNewEntryModal()" 
+                    <button onclick="closeNewEntryModal()"
                             class="flex-1 py-3 px-4 border-2 border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">
                         취소
                     </button>
-                    <button onclick="submitNewEntry()" 
+                    <button onclick="submitNewEntry()"
                             class="flex-1 py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg">
                         추가하기
                     </button>
@@ -406,8 +407,8 @@
                 <!-- 안내 문구 -->
                 <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 mt-2">
                     <p class="text-[11px] text-slate-500 leading-relaxed">
-                        <span class="font-bold text-slate-600">💡 TIP:</span> 
-                        셀러명만 입력하면 셀러만 추가됩니다. 상품명까지 입력하면 셀러-상품 연결이 생성됩니다. 
+                        <span class="font-bold text-slate-600">💡 TIP:</span>
+                        셀러명만 입력하면 셀러만 추가됩니다. 상품명까지 입력하면 셀러-상품 연결이 생성됩니다.
                         행사일/매출까지 입력하면 매출 기록도 함께 생성됩니다.
                     </p>
                 </div>
@@ -439,17 +440,14 @@
                             <label class="text-[10px] font-bold text-slate-400 uppercase">행사일</label>
                             <input type="date" id="logDate" class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
-                        <div class="flex flex-col gap-1">
-                            <label class="text-[10px] font-bold text-slate-400 uppercase">상품</label>
-                            <div class="flex gap-1">
-                                <input type="text" id="logProduct" list="logProductList" class="flex-1 px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="상품 선택 또는 입력">
-                                <button type="button" onclick="showProductList()" class="px-2 py-2 border rounded-lg hover:bg-slate-50 transition-all" title="상품 목록 보기">
-                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                            <datalist id="logProductList"></datalist>
+                        <div class="flex flex-col gap-1 min-w-0">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">상품</label>
+                        <div class="flex gap-1">
+                            <input type="text" id="logProduct" list="logProductList"
+                                class="min-w-0 w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="상품 선택 또는 입력">
+                        </div>
+                        <datalist id="logProductList"></datalist>
                         </div>
                         <div class="flex flex-col gap-1">
                             <label class="text-[10px] font-bold text-slate-400 uppercase">매출액(억원)</label>
@@ -505,6 +503,7 @@
     let editingLogId = null;    // selected log id (toggle)
 
     let currentProductTarget = ''; // product modal
+    let pendingJumpToTodayOnNav = false; // ✅ '전체' 후 첫 화살표에서 오늘 월 1회 보여주기
 
     // Calendar state
     let calendarYear = new Date().getFullYear();
@@ -569,6 +568,12 @@
     let excelBackupTimer = null;
     let excelBackupDirHandle = null;
     let excelBackupEnabled = false;
+
+    // ===== Excel backup prompt on exit =====
+    let hasUnsavedExcelBackup = false;
+    function markDirty() { hasUnsavedExcelBackup = true; }
+    function clearDirty() { hasUnsavedExcelBackup = false; }
+
     const EXCEL_BACKUP_DB = 'st_excel_backup_db_v1';
     const EXCEL_BACKUP_STORE = 'kv';
     const EXCEL_BACKUP_HANDLE_KEY = 'excel_backup_dir_handle';
@@ -677,6 +682,7 @@
             const writable = await fileHandle.createWritable();
             await writable.write(new Blob([wbout], { type: 'application/octet-stream' }));
             await writable.close();
+            clearDirty();
         } catch (e) {
             console.error('[ExcelAutoBackup] write error:', e);
         }
@@ -690,12 +696,12 @@
     // -------------------------
     // Local Storage
     // -------------------------
-    function saveToLocal() {
-        localStorage.setItem('sorted_rawData', JSON.stringify(rawData));
-        localStorage.setItem('sorted_salesLogs', JSON.stringify(salesLogs));
-        scheduleAutoBackup();
-        scheduleExcelAutoBackup();
-    }
+function saveToLocal() {
+    localStorage.setItem('sorted_rawData', JSON.stringify(rawData));
+    localStorage.setItem('sorted_salesLogs', JSON.stringify(salesLogs));
+    // scheduleAutoBackup(); // 자동 백업 제거
+    // scheduleExcelAutoBackup();
+}
 
     function loadFromLocal() {
         rawData = JSON.parse(localStorage.getItem('sorted_rawData') || '[]');
@@ -731,6 +737,7 @@
     function resetGlobalFilter() {
         document.getElementById('filterYear').value = '';
         document.getElementById('filterMonth').value = '';
+        pendingJumpToTodayOnNav = true; // ✅ 다음 화살표 1회는 '오늘 월'로 점프
         renderAll();
     }
 
@@ -756,12 +763,12 @@
         document.getElementById('calendarView').classList.toggle('hidden', v !== 'calendar');
         document.getElementById('sellerFilterGroup').classList.toggle('hidden', v !== 'seller');
         document.getElementById('searchArea').classList.toggle('hidden', v === 'stats' || v === 'calendar');
-        
+
         // 캘린더 뷰 전환 시 선택된 날짜 이벤트 리스트 닫기
         if (v === 'calendar') {
             closeSelectedDateEvents();
         }
-        
+
         renderAll();
     }
 
@@ -890,23 +897,23 @@
     // 셀 높이에 따라 이벤트 개수 동적 계산 및 렌더링
     function renderCalendarEvents() {
         const cells = document.querySelectorAll('.calendar-day:not(.other-month)');
-        
+
         cells.forEach(cell => {
             const eventsContainer = cell.querySelector('.calendar-events-container');
             if (!eventsContainer) return;
-            
+
             const dateStr = cell.getAttribute('data-date');
             let events = [];
             try {
                 events = JSON.parse(cell.getAttribute('data-events') || '[]');
             } catch(e) { events = []; }
-            
+
             if (!events.length) return;
-            
+
             eventsContainer.innerHTML = '';
-            
+
             const containerHeight = eventsContainer.clientHeight;
-            
+
             // 테스트용 이벤트를 하나 만들어서 실제 높이 측정
             const testEl = document.createElement('div');
             testEl.className = 'calendar-event';
@@ -915,13 +922,13 @@
             eventsContainer.appendChild(testEl);
             const actualLineHeight = testEl.offsetHeight + 1; // gap 포함
             eventsContainer.removeChild(testEl);
-            
+
             // 컨테이너에 들어갈 수 있는 총 줄 수
             const totalSlots = Math.floor(containerHeight / actualLineHeight);
-            
+
             let visibleCount;
             let showMoreButton;
-            
+
             if (events.length <= totalSlots) {
                 // 모든 이벤트가 들어감 - 더보기 불필요
                 visibleCount = events.length;
@@ -931,7 +938,7 @@
                 visibleCount = Math.max(1, totalSlots - 1);
                 showMoreButton = true;
             }
-            
+
             // 이벤트 표시
             for (let i = 0; i < visibleCount; i++) {
                 const event = events[i];
@@ -944,7 +951,7 @@
                 eventEl.onclick = (e) => {
                     e.stopPropagation();
                     syncCalendarFilterToHeader();
-                    openSellerModal(event.seller);
+                    openSellerModal(event.seller, { logId: event.id }); // ✅ 해당 기록 자동 선택
                 };
                 eventsContainer.appendChild(eventEl);
             }
@@ -963,7 +970,7 @@
             }
         });
     }
-    
+
     // 캘린더 월을 상단 필터에 동기화
     function syncCalendarFilterToHeader() {
         document.getElementById('filterYear').value = String(calendarYear);
@@ -973,7 +980,7 @@
     function getEventsForMonth(year, month) {
         const events = {};
         const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
-        
+
         salesLogs.forEach(log => {
             if (log.date && log.date.startsWith(monthStr)) {
                 if (!events[log.date]) events[log.date] = [];
@@ -990,6 +997,26 @@
     }
 
     function navigatePeriod(direction) {
+        const y = document.getElementById('filterYear')?.value;
+        const m = document.getElementById('filterMonth')?.value;
+
+        // ✅ [요구사항] '전체' 직후 첫 화살표: 방향 무시하고 오늘 월을 먼저 한 번 보여줌
+        if (pendingJumpToTodayOnNav || !(y && m)) {
+            const today = new Date();
+            calendarYear = today.getFullYear();
+            calendarMonth = today.getMonth(); // 0-index
+            setHeaderFromCalendarState();     // 헤더(드롭다운)도 오늘 월로 맞춤
+            pendingJumpToTodayOnNav = false;  // ✅ 1회만
+
+            closeSelectedDateEvents();
+            if (currentView === 'calendar') renderCalendar();
+            else renderAll();
+            return; // ✅ 여기서 끝 (이번 클릭은 '오늘 월 보여주기'만)
+        }
+
+        // ✅ 이후부터는 드롭다운(=기준 월) 기준으로 정상 이동
+        syncCalendarStateFromHeader();
+
         calendarMonth += direction;
         if (calendarMonth < 0) {
             calendarMonth = 11;
@@ -998,9 +1025,28 @@
             calendarMonth = 0;
             calendarYear++;
         }
-        syncCalendarFilterToHeader();
+
+        setHeaderFromCalendarState();
         closeSelectedDateEvents();
-        renderCalendar();
+        if (currentView === 'calendar') renderCalendar();
+        else renderAll();
+    }
+
+
+    function syncCalendarStateFromHeader() {
+        const y = document.getElementById('filterYear')?.value;
+        const m = document.getElementById('filterMonth')?.value;
+
+        // 연/월이 둘 다 선택된 경우에만 캘린더 상태를 드롭다운과 동기화
+        if (y && m) {
+            calendarYear = parseInt(y, 10);
+            calendarMonth = parseInt(m, 10) - 1; // 0-index
+        }
+    }
+
+    function setHeaderFromCalendarState() {
+        document.getElementById('filterYear').value = String(calendarYear);
+        document.getElementById('filterMonth').value = String(calendarMonth + 1).padStart(2, '0');
     }
 
     function goToToday() {
@@ -1046,10 +1092,10 @@
                     <div class="font-black text-blue-600">${Number(event.revenue || 0).toFixed(2)}억</div>
                 </div>
             `;
-            item.onclick = () => {
-                syncCalendarFilterToHeader();
-                openSellerModal(event.seller);
-            };
+        item.onclick = () => {
+            syncCalendarFilterToHeader();
+            openSellerModal(event.seller, { logId: event.id }); // ✅ 해당 기록 자동 선택
+        };
             list.appendChild(item);
         });
 
@@ -1068,27 +1114,27 @@
     function makeEventsDraggable() {
         document.querySelectorAll('.calendar-event').forEach(el => {
             el.draggable = true;
-            
+
             el.addEventListener('dragstart', (e) => {
                 const eventEl = e.target.closest('.calendar-event');
                 if (!eventEl) return;
-                
+
                 // 수정: data-log-id 사용
                 const logId = eventEl.getAttribute('data-log-id');
                 const cell = eventEl.closest('.calendar-day');
                 const originalDate = cell.getAttribute('data-date');
-                
+
                 if (!logId) return;
-                
+
                 e.dataTransfer.setData('text/plain', JSON.stringify({
                     logId: parseInt(logId),
                     originalDate
                 }));
-                
+
                 // 시각적 피드백
                 eventEl.classList.add('opacity-50');
             });
-            
+
             el.addEventListener('dragend', (e) => {
                 e.target.classList.remove('opacity-50');
             });
@@ -1101,32 +1147,34 @@
                 e.preventDefault();
                 cell.classList.add('ring-2', 'ring-blue-400', 'bg-blue-50/30');
             });
-            
+
             cell.addEventListener('dragleave', () => {
                 cell.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50/30');
             });
-            
+
             cell.addEventListener('drop', (e) => {
                 e.preventDefault();
+
                 cell.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50/30');
-                
+
                 const data = e.dataTransfer.getData('text/plain');
                 if (!data) return;
-                
+
                 try {
                     const { logId, originalDate } = JSON.parse(data);
                     const newDate = cell.getAttribute('data-date');
-                    
+
                     if (newDate === originalDate) return; // 같은 날짜면 무시
-                    
+
                     // 실제 데이터 업데이트
                     const log = salesLogs.find(l => l.id === logId);
                     if (log) {
                         log.date = newDate;
-                        
+
                         // 날짜순 정렬 유지
                         salesLogs.sort((a,b) => (b.date||'').localeCompare(a.date||''));
-                        
+
+                        markDirty();
                         saveToLocal();           // 저장
                         renderCalendar();        // 전체 다시 그리기 (안전)
                     }
@@ -1144,11 +1192,11 @@
         const card = document.createElement('div');
         card.className = "empty-state-card bg-white rounded-[2rem] p-8 shadow-sm cursor-pointer transition-all col-span-full flex flex-col items-center justify-center min-h-[200px]";
         card.onclick = () => openNewEntryModal();
-        
+
         const icon = type === 'seller' ? '👤' : '📦';
         const title = type === 'seller' ? '등록된 셀러가 없습니다' : '등록된 상품이 없습니다';
         const subtitle = '클릭하여 첫 데이터를 추가하세요';
-        
+
         card.innerHTML = `
             <div class="text-5xl mb-4">${icon}</div>
             <h3 class="text-lg font-black text-slate-400 mb-2">${title}</h3>
@@ -1378,6 +1426,7 @@
             }
         }
 
+        markDirty();
         saveToLocal();
         closeNewEntryModal();
         renderAll();
@@ -1401,7 +1450,7 @@
         return rawData.find(s => s.name === currentTarget) || null;
     }
 
-    function openSellerModal(sellerName) {
+    function openSellerModal(sellerName, opts = {}) {
         currentTarget = sellerName;
         editingLogId = null;
 
@@ -1412,6 +1461,16 @@
         resetLogFields();
         renderModalItemsPeriod();
         renderLogHistoryPeriod();
+
+        // ✅ 달력/리스트에서 특정 로그를 클릭해서 들어온 경우: 그 로그를 자동 선택
+        if (opts.logId) {
+            const log = salesLogs.find(l => l.id === opts.logId);
+            if (log) {
+                switchTab('log');
+                selectLog(log);
+                return;
+            }
+        }
 
         switchTab('rel');
     }
@@ -1516,18 +1575,18 @@
     function showProductList() {
         const input = document.getElementById('logProduct');
         if (!input) return;
-        
+
         savedProductValue = input.value;
         input.value = '';
         input.focus();
-        
+
         const restoreHandler = () => {
             if (input.value === '') {
                 input.value = savedProductValue;
             }
             input.removeEventListener('blur', restoreHandler);
         };
-        
+
         setTimeout(() => {
             input.addEventListener('blur', restoreHandler);
         }, 100);
@@ -1622,6 +1681,7 @@
         salesLogs.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
         editingLogId = null;
+        markDirty();
         saveToLocal();
         resetLogFields();
         renderModalItemsPeriod();
@@ -1633,6 +1693,7 @@
         if (!confirm('이 기록을 삭제하시겠습니까?')) return;
         salesLogs = salesLogs.filter(l => l.id !== id);
         if (editingLogId === id) { editingLogId = null; resetLogFields(); }
+        markDirty();
         saveToLocal();
         renderModalItemsPeriod();
         renderLogHistoryPeriod();
@@ -1767,6 +1828,7 @@
                 rawData = Array.from(sellerMap.values()).map(s => ({ name: s.name, products: uniqueSorted(s.products) })).sort((a,b)=>koreanSort(a.name,b.name));
                 salesLogs = newLogs.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
 
+                clearDirty();
                 saveToLocal();
                 alert(`데이터 불러오기 완료!\n등록된 셀러: ${rawData.length}명\n기록: ${salesLogs.length}건`);
                 location.reload();
@@ -1782,6 +1844,7 @@
         if (!confirm("모든 데이터를 영구 삭제하시겠습니까?")) return;
         localStorage.removeItem('sorted_rawData');
         localStorage.removeItem('sorted_salesLogs');
+        clearDirty();
         location.reload();
     }
 
@@ -1803,13 +1866,13 @@
     let resizeTimer = null;
     window.onload = () => {
         loadFromLocal();
-        loadExcelAutoBackupSetting();
-        updateExcelBackupBtnUI();
+        // loadExcelAutoBackupSetting();
+        // updateExcelBackupBtnUI();
         renderAll();
 
-        document.getElementById('filterYear').addEventListener('change', renderAll);
-        document.getElementById('filterMonth').addEventListener('change', renderAll);
-        
+        document.getElementById('filterYear').addEventListener('change', onPeriodDropdownChange);
+        document.getElementById('filterMonth').addEventListener('change', onPeriodDropdownChange);
+
         // 창 크기 변경 시 캘린더 이벤트 다시 계산
         window.addEventListener('resize', () => {
             if (resizeTimer) clearTimeout(resizeTimer);
@@ -1821,6 +1884,14 @@
         });
     };
 
+    // 종료(탭 닫기/새로고침) 전: 엑셀 백업 필요 시 경고
+    window.addEventListener('beforeunload', (e) => {
+        if (!excelBackupEnabled || !excelBackupDirHandle) return;
+        if (!hasUnsavedExcelBackup) return;
+        e.preventDefault();
+        e.returnValue = '';
+    });
+
     window.onclick = (e) => {
         const modal = document.getElementById('modal');
         const pmodal = document.getElementById('productModal');
@@ -1829,6 +1900,18 @@
         if (e.target === pmodal) closeProductModal();
         if (e.target === newEntryModal) closeNewEntryModal();
     };
+
+    function onPeriodDropdownChange() {
+        const y = document.getElementById('filterYear').value;
+        const m = document.getElementById('filterMonth').value;
+
+        // ✅ 사용자가 직접 기간을 고르면 '오늘 월 점프' 대기 해제
+        if (y && m) pendingJumpToTodayOnNav = false;
+    // 드롭다운 값 -> 캘린더 상태 동기화
+        syncCalendarStateFromHeader();
+        closeSelectedDateEvents();
+        renderAll();
+    }
 </script>
 
 </body>
